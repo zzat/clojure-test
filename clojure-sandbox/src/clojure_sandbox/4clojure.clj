@@ -282,3 +282,111 @@
 (= [] (replicate-sequence [1] 0))
 (= [1 2] (replicate-sequence [1 2] 1))
 (= [1 1 1 2 2 2 3 3 3] (replicate-sequence [1 2 3] 3))
+
+;; Problem 34, Implement range
+;; Write a function which creates a list of all integers in a given range.
+(defn range-int
+  [start end]
+  (cond 
+    (> start end) nil
+    (= start end) []
+    :else (cons start (range-int (inc start) end) )))
+
+;; tests
+(= [] (range-int 1 1))
+(= [1 2] (range-int 1 3))
+(= [1 2 3] (range-int 1 4))
+(= nil (range-int 3 1))
+
+;; Problem 38, Maximum value
+;; Write a function which takes a variable number of parameters and returns the maximum value.
+
+; (defn max-val
+;   [ x & more ]
+;   (cond 
+;     (empty? more) x
+;     :else (let [local-max (if (> x (first more)) x (first more))] 
+;             (apply max-val local-max (rest more)))))
+
+; (defn max-val
+;   ([x] x)
+;   ([x y] (if (> x y) x y))
+;   ([ x y & more ] (apply max-val (max-val x y) more)))
+
+(defn max-val
+  [ & args ]
+  (reduce #(if (> %1 %2) %1 %2) args))
+
+;; tests
+(= 1 (max-val 1))
+(= 5 (max-val 1 5 3 4))
+
+;; Problem 39, Interleave Two Seqs
+;; Write a function which takes two sequences and returns the first item from each, then the second item from each, then the third, etc.
+
+(defn interleave-seq
+  [[elem1 & rest1 :as seq1] [elem2 & rest2 :as seq2]]
+  (if (some empty? [seq1 seq2]) 
+    [] 
+    (into [elem1 elem2] (interleave-seq rest1 rest2))))
+
+;; tests
+(= [] (interleave-seq [1 2] []))
+(= [1 1] (interleave-seq [1 2] [1]))
+(= [1 1 2 3] (interleave-seq [1 2] [1 3]))
+
+;; Problem 40, Interpose a Seq
+;; Write a function which separates the items of a sequence by an arbitrary value.
+(defn interpose-seq
+  [sep seq]
+  (reduce #(into %1 (if (empty? %1) [%2] [sep %2])) [] seq))
+
+;; tests
+(= [] (interpose-seq 0 []))
+(= [1] (interpose-seq 0 [1]))
+(= [1 0 2] (interpose-seq 0 [1 2]))
+(= [1 0 2 0 3] (interpose-seq 0 '( 1 2 3)))
+
+;; Problem 41, Drop Every Nth Item
+;; Write a function which drops every Nth item from a sequence.
+
+(defn drop-nth
+  [seq n]
+  (map :value 
+   (filter #(not (zero? (mod (:index %) n))) 
+           (map #(hash-map :index (inc %2) :value %1) seq (range)))))
+
+  ;; tests
+  (= [] (drop-nth [] 2))
+  (= [] (drop-nth [1] 1))
+  (= [1 2] (drop-nth [1 2 3] 3))
+  (= [1 2 4 5 7] (drop-nth [1 2 3 4 5 6 7] 3))
+
+;; Problem 42, Factorial Fun
+;; Write a function which calculates factorials.
+
+; (defn factorial 
+;   [n]
+;   (cond
+;     (= n 1) 1 
+;     :else (* n (factorial (dec n)))))
+
+(defn factorial
+  [n]
+  (apply * (range 1 (inc n))))
+
+;; tests
+(= 1 (factorial 1))
+(= 120 (factorial 5))
+
+;; Problem 43, Reverse Interleave
+;; Write a function which reverses the interleave process into x number of subsequences.
+
+(defn reverse-interleave
+  [seq n]
+  (if (empty? seq) [] (apply map vector (partition n seq))))
+
+;; tests
+(= [] (reverse-interleave [] 2))
+(= [[1] [2]] (reverse-interleave [1 2] 2))
+(= [[1 4] [2 5] [3 6]] (reverse-interleave [1 2 3 4 5 6] 3))
