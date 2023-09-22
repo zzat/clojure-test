@@ -338,8 +338,8 @@
 ;; Problem 40, Interpose a Seq
 ;; Write a function which separates the items of a sequence by an arbitrary value.
 (defn interpose-seq
-  [sep seq]
-  (reduce #(into %1 (if (empty? %1) [%2] [sep %2])) [] seq))
+  [sep coll]
+  (reduce #(into %1 (if (empty? %1) [%2] [sep %2])) [] coll))
 
 ;; tests
 (= [] (interpose-seq 0 []))
@@ -351,10 +351,10 @@
 ;; Write a function which drops every Nth item from a sequence.
 
 (defn drop-nth
-  [seq n]
+  [coll n]
   (map :value 
    (filter #(not (zero? (mod (:index %) n))) 
-           (map #(hash-map :index (inc %2) :value %1) seq (range)))))
+           (map #(hash-map :index (inc %2) :value %1) coll (range)))))
 
   ;; tests
   (= [] (drop-nth [] 2))
@@ -383,10 +383,95 @@
 ;; Write a function which reverses the interleave process into x number of subsequences.
 
 (defn reverse-interleave
-  [seq n]
-  (if (empty? seq) [] (apply map vector (partition n seq))))
+  [coll n]
+  (if (empty? coll) [] (apply map vector (partition n coll))))
 
 ;; tests
 (= [] (reverse-interleave [] 2))
 (= [[1] [2]] (reverse-interleave [1 2] 2))
 (= [[1 4] [2 5] [3 6]] (reverse-interleave [1 2 3 4 5 6] 3))
+
+;; Problem 44, Rotate Sequence
+;; Write a function which can rotate a sequence in either direction.
+
+(defn rotate-sequence
+  [n coll]
+  (let [rotate-by (mod n (count coll))
+        [left right] (split-at rotate-by coll)]
+    (concat right left)))
+
+;; tests
+(= [] (rotate-sequence 2 []))
+(= [1 2 3] (rotate-sequence 0 [1 2 3]))
+(= [3 1 2] (rotate-sequence 2 [1 2 3]))
+(= [2 3 1] (rotate-sequence -2 [1 2 3]))
+(= [2 3 1] (rotate-sequence 4 [1 2 3]))
+
+;; Problem 46, Flipping out
+;; Write a higher-order function which flips the order of the arguments of an input function.
+
+(defn flip 
+  [f]
+  (fn [& args] (apply f (reverse args))))
+
+;; tests
+(= true ((flip >) 1 2))
+(= [1 2] ((flip take) [1 2 3 4 5] 2))
+
+;; Problem 49, Split a sequence
+;; Write a function which will split a sequence into two parts.
+
+(defn split-seq-at
+  [n coll]
+  [(take n coll) (drop n coll)])
+
+;; tests
+(= '(() ()) (split-seq-at 2 []))
+(= '((1 2) (3 4 5)) (split-seq-at 2 [1 2 3 4 5]))
+
+;; Problem 50, Split by Type
+;; Write a function which takes a sequence consisting of items with different types and splits them up into a set of homogeneous sub-sequences. The internal order of each sub-sequence should be maintained, but the sub-sequences themselves can be returned in any order (this is why 'set' is used in the test cases).
+
+(defn split-by-type
+  [coll]
+  (let [update-fn (fn [old-val new-val]
+                    (if (nil? old-val) 
+                      [new-val] 
+                      (conj old-val new-val)))]
+    (loop [type-map {}
+           [elem & more :as remaining] coll]
+    (if (empty? remaining) 
+      (vals type-map) 
+      (recur (update type-map (type elem) update-fn elem) more)))))
+
+;; tests
+(= [] (split-by-type []))
+(= [[1]] (split-by-type [1]))
+(= [[1] [:a]] (split-by-type [1 :a]))
+(= [[1 2] [:a :b] ["ABC"]] (split-by-type [1 :a :b 2 "ABC"]))
+
+;; Problem 53, Longest Increasing Sub-Seq
+;; Given a vector of integers, find the longest consecutive sub-sequence of increasing numbers. If two sub-sequences have the same length, use the one that occurs first. An increasing sub-sequence must have a length of 2 or greater to qualify.
+
+(defn longest-increasing-sub-seq
+  [coll]
+  (loop [longest-seq []
+         current-seq []
+         last-element nil
+         [ elem & more :as remaining ] coll]
+    (cond 
+      (empty? remaining) (let [longest-seq-length (count longest-seq)
+                               current-seq-length (count current-seq)]
+                           (if (and (< longest-seq-length 2) (< current-seq-length 2))
+                           []
+                           (if (> current-seq-length longest-seq-length) current-seq longest-seq)))
+      :else (if (or (nil? last-element) (> elem last-element))
+              (recur longest-seq (conj current-seq elem) elem more)
+              (if (> (count current-seq) (count longest-seq)) 
+                (recur current-seq [elem] elem more)
+                (recur longest-seq [elem] elem more))))))
+
+;; tests
+(= [] (longest-increasing-sub-seq [1]))
+(= [] (longest-increasing-sub-seq [6 5 3 2]))
+(= [5 7 9] (longest-increasing-sub-seq [6 5 7 9]))
