@@ -1,4 +1,4 @@
-(ns clojure_sandbox.4clojure)
+(ns clojure-sandbox.4clojure)
 
 ;; Problem 19, Last Element
 ;; Write a function which returns the last element in a sequence.
@@ -353,7 +353,7 @@
 (defn drop-nth
   [coll n]
   (map :value 
-   (filter #(not (zero? (mod (:index %) n))) 
+   (filter #((comp not zero?) (mod (:index %) n))
            (map #(hash-map :index (inc %2) :value %1) coll (range)))))
 
   ;; tests
@@ -396,9 +396,11 @@
 
 (defn rotate-sequence
   [n coll]
-  (let [rotate-by (mod n (count coll))
-        [left right] (split-at rotate-by coll)]
-    (concat right left)))
+  (cond
+    (empty? coll) coll
+    :else (let [rotate-by (mod n (count coll))
+                [left right] (split-at rotate-by coll)]
+            (concat right left))))
 
 ;; tests
 (= [] (rotate-sequence 2 []))
@@ -475,3 +477,234 @@
 (= [] (longest-increasing-sub-seq [1]))
 (= [] (longest-increasing-sub-seq [6 5 3 2]))
 (= [5 7 9] (longest-increasing-sub-seq [6 5 7 9]))
+
+;; Problem 54, Partition a Sequence
+;; Write a function which returns a sequence of lists of x items each. Lists of less than x items should not be returned.
+(defn partition-seq
+  [n coll]
+  (cond 
+    (empty? coll) []
+    :else (let [first-part (take n coll)
+                remaining-part (drop n coll)]
+            (if (< (count first-part) n)
+              []
+              (cons first-part (partition-seq n remaining-part))))))
+
+;; tests
+(= (partition-seq 3 (range 9)) '((0 1 2) (3 4 5) (6 7 8)))
+(= (partition-seq 2 (range 8)) '((0 1) (2 3) (4 5) (6 7)))
+(= (partition-seq 3 (range 8)) '((0 1 2) (3 4 5)))
+
+;; Problem 55, Count Occurences
+;; Write a function which returns a map containing the number of occurences of each distinct item in a sequence. 
+
+(defn count-occurences
+  [coll]
+  (let [update-fn (fn [old-val new-val] (if (nil? old-val) 1 (inc old-val)))]
+    (loop [frequency-map {}
+           [elem & remaining :as elems] coll]
+      (cond 
+        (empty? elems) frequency-map
+        :else (recur (update frequency-map elem update-fn 1) remaining)))))
+
+;; tests
+(= (count-occurences [1 1 2 3 2 1 1]) {1 4, 2 2, 3 1})
+(= (count-occurences [:b :a :b :a :b]) {:a 2, :b 3})
+(= (count-occurences '([1 2] [1 3] [1 3])) {[1 2] 1, [1 3] 2})
+
+;; Problem 56, Find Distinct Items
+;; Write a function which removes the duplicates from a sequence. Order of the items must be maintained.
+
+(defn distinct-items
+  [coll]
+  (reduce #(if (contains? (set %1) %2) %1 (conj %1 %2)) [] coll))
+
+;; tests
+(= (distinct-items [1 2 1 3 1 2 4]) [1 2 3 4])
+(= (distinct-items [:a :a :b :b :c :c]) [:a :b :c])
+(= (distinct-items '([2 4] [1 2] [1 3] [1 3])) '([2 4] [1 2] [1 3]))
+(= (distinct-items (range 50)) (range 50))
+
+;; Problem 58, Function Composition
+;; Write a function which allows you to create function compositions. The parameter list should take a variable number of functions, and create a function applies them from right-to-left.
+
+(defn compose
+  [& functions]
+  (cond 
+    (empty? functions) nil
+    :else (fn [& args]
+            ((fn fn-comp [[first-fn & rest-fn]]
+              (if (nil? rest-fn) 
+                (apply first-fn args) 
+                (first-fn (fn-comp rest-fn)))) functions))))
+
+; rest (fn-comp reverse)
+; (fn x (reverse x))
+
+;; tests
+(= [3 2 1] ((fn-comp rest reverse) [1 2 3 4]))
+(= 5 ((fn-comp (partial + 3) second) [1 2 3 4]))
+(= true ((fn-comp zero? #(mod % 8) +) 3 5 7 9))
+(= "HELLO" ((fn-comp #(.toUpperCase %) #(apply str %) take) 5 "hello world"))
+
+;; Problem 59, Juxtaposition
+;; Take a set of functions and return a new function that takes a variable number of arguments and returns a sequence containing the result of applying each function left-to-right to the argument list.
+
+(defn juxtaposition
+  [ & functions ]
+  (fn [ & args ]
+    (map #(apply % args) functions)))
+
+;; tests
+(= [21 6 1] ((juxtaposition + max min) 2 3 5 1 6 4))
+(= ["HELLO" 5] ((juxtaposition #(.toUpperCase %) count) "hello"))
+(= [2 6 4] ((juxtaposition :a :c :b) {:a 2, :b 4, :c 6, :d 8 :e 10}))
+
+;; Problem 60, Sequence Reductions
+;; Write a function which behaves like reduce, but returns each intermediate value of the reduction. Your function must accept either two or three arguments, and the return sequence must be lazy.
+
+(defn seq-reduction
+  ([func acc coll]
+   (cond
+    (empty? coll) [acc]
+    :else (lazy-seq (let [step-result (func acc (first coll))]
+            (cons acc (seq-reduction func step-result (rest coll)))))))
+  ([func coll] (seq-reduction func (first coll) (rest coll))))
+
+;; tests
+(= (take 5 (seq-reduction + (range))) [0 1 3 6 10])
+(= (seq-reduction conj [1] [2 3 4]) [[1] [1 2] [1 2 3] [1 2 3 4]])
+(= (last (seq-reduction * 2 [3 4 5])) (reduce * 2 [3 4 5]) 120)
+
+;; Problem 61, Map Construction
+;; Write a function which takes a vector of keys and a vector of values and constructs a map from them.
+
+(defn construct-map
+  [ks vs]
+  (into {} (map #(hash-map %1 %2) ks vs)))
+
+;; tests
+(= (construct-map [:a :b :c] [1 2 3]) {:a 1, :b 2, :c 3})
+(= (construct-map [1 2 3 4] ["one" "two" "three"]) {1 "one", 2 "two", 3 "three"})
+(= (construct-map [:foo :bar] ["foo" "bar" "baz"]) {:foo "foo", :bar "bar"})
+
+;; Problem 62, Re-implement Iteration
+;; Given a side-effect free function f and an initial value x write a function which returns an infinite lazy sequence of x, (f x), (f (f x)), (f (f (f x))), etc.
+
+(defn iterate*
+  [f x]
+  (lazy-seq (cons x (iterate* f (f x)))))
+
+;;tests
+(= (take 5 (iterate* #(* 2 %) 1)) [1 2 4 8 16])
+(= (take 100 (iterate* inc 0)) (take 100 (range)))
+(= (take 9 (iterate* #(inc (mod % 3)) 1)) (take 9 (cycle [1 2 3])))
+
+;; Problem 63, Group a Sequence
+;; Given a function f and a sequence s, write a function which returns a map. The keys should be the values of f applied to each item in s. The value at each key should be a vector of corresponding items in the order they appear in s.
+
+(defn group-seq
+  [f s]
+  (let [update-fn (fn [old-val new-val] 
+                    (if (nil? old-val) 
+                      [new-val] 
+                      (conj old-val new-val)))]
+    (loop [grouped-map {}
+           coll s]
+      (cond
+        (empty? coll) grouped-map
+        :else (recur (update grouped-map (f (first coll)) update-fn (first coll)) (rest coll))))))
+
+;; tests
+(= (group-seq #(> % 5) #{1 3 6 8}) {false [1 3], true [6 8]})
+(= (group-seq #(apply / %) [[1 2] [2 4] [4 6] [3 6]])
+   {1/2 [[1 2] [2 4] [3 6]], 2/3 [[4 6]]})
+(= (group-seq count [[1] [1 2] [3] [1 2 3] [2 3]])
+   {1 [[1] [3]], 2 [[1 2] [2 3]], 3 [[1 2 3]]}) 
+
+;; Problem 66, Greatest Common Divisor
+;; Given two integers, write a function which returns the greatest common divisor.
+
+(defn gcd
+  [i1 i2]
+  (cond
+    (= i1 i2) i1
+    (> i1 i2) (gcd (- i1 i2) i2)
+    :else (gcd i1 (- i2 i1))))
+
+;; tests
+(= (gcd 2 4) 2)
+(= (gcd 10 5) 5)
+(= (gcd 5 7) 1)
+(= (gcd 1023 858) 33)
+
+;; Problem 67, Prime Numbers
+;; Write a function which returns the first x number of prime numbers.
+
+(defn n-primes
+  [n]
+  (let [isPrime (fn [x] 
+                  (cond
+                    (= 2 x) true
+                    :else (not (some #(zero? (mod x %)) (range 2 (inc (Math/sqrt x)))))))] 
+    (take n (filter isPrime (map (partial + 2) (range))))))
+
+;; tests
+(= (n-primes 2) [2 3])
+(= (n-primes 5) [2 3 5 7 11])
+(= (last (n-primes 100)) 541)
+
+;; Problem 70, Word Sorting
+;; Write a function which splits a sentence up into a sorted list of words. Capitalization should not affect sort order and punctuation should be ignored.
+
+(defn sort-words
+  [sentence]
+  (sort-by #(clojure.string/lower-case %) (re-seq #"\w+" sentence)))
+
+;; tests
+(= (sort-words  "Have a nice day.")
+   ["a" "day" "Have" "nice"])
+(= (sort-words  "Clojure is a fun language!")
+   ["a" "Clojure" "fun" "is" "language"])
+(= (sort-words  "Fools fall for foolish follies.")
+   ["fall" "follies" "foolish" "Fools" "for"])
+
+;; Problem 73, Analyze a Tic-Tac-Toe Board
+;; A tic-tac-toe board is represented by a two dimensional vector. X is represented by :x, O is represented by :o, and empty is represented by :e. A player wins by placing three Xs or three Os in a horizontal, vertical, or diagonal row. Write a function which analyzes a tic-tac-toe board and returns :x if X has won, :o if O has won, and nil if neither player has won.
+
+(defn analyze-tic-tac-toe
+  [board]
+  (let [rows board
+        cols (apply (partial map #(list %1 %2 %3)) rows)
+        diags [[((board 0) 0) ((board 1) 1) ((board 2) 2)] 
+               [((board 0) 2) ((board 1) 1) ((board 2) 0)]]
+        check (fn [k]
+                (some (fn [vals] (every? #(= k %) vals)) (into (into rows cols) diags)))]
+    (cond 
+      (check :x) :x
+      (check :o) :o 
+      :else nil)
+    ))
+
+;; tests
+(= nil (analyze-tic-tac-toe [[:e :e :e]
+            [:e :e :e]
+            [:e :e :e]]))
+(= :x (analyze-tic-tac-toe [[:x :e :o]
+           [:x :e :e]
+           [:x :e :o]]))
+(= :o (analyze-tic-tac-toe [[:e :x :e]
+           [:o :o :o]
+           [:x :e :x]]))
+(= nil (analyze-tic-tac-toe [[:x :e :o]
+            [:x :x :e]
+            [:o :x :o]]))
+(= :x (analyze-tic-tac-toe [[:x :e :e]
+           [:o :x :e]
+           [:o :e :x]]))
+(= :o (analyze-tic-tac-toe [[:x :e :o]
+           [:x :o :e]
+           [:o :e :x]]))
+(= nil (analyze-tic-tac-toe [[:x :o :x]
+            [:x :o :x]
+            [:o :x :o]]))
