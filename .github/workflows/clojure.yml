@@ -1,0 +1,21 @@
+name: Clojure CI
+
+on:
+  push:
+    paths:
+      - swift-ticketing/**
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: lein deps
+      working-directory: swift-ticketing
+    - name: Run tests
+      run: lein test
+      working-directory: swift-ticketing
