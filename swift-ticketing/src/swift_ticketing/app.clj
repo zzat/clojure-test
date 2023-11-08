@@ -8,6 +8,8 @@
 (defn init-routes [db-spec]
   (defroutes app-routes
     (GET "/" [] "Hello World")
+    (GET "/event" [venue from to]
+      (handlers/get-event db-spec venue from to))
     (POST "/event" {:keys [body cookies]}
       (handlers/create-event db-spec (get-in cookies ["uid" :value]) body))
     (POST "/event/:event-id/ticket" {:keys [body cookies route-params]}

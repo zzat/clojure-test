@@ -10,3 +10,11 @@
                          [:cast (:date event-req) :date]
                          [:cast uid :uuid]
                          (:venue event-req)]]}))
+
+(defn get-event [venue from to]
+  (sql/format {:select [:event_id :event_name :event_description :event_date :venue] :from :swift_ticketing.event
+               :where [:and 
+                       (if (nil? venue) [true] [:= :venue venue])
+                       (if (nil? from) [true] [:>= :event_date [:cast from :date]])
+                       (if (nil? to) [true] [:<= :event_date [:cast to :date]])
+                       ]}))

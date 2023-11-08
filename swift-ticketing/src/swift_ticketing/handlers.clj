@@ -1,8 +1,14 @@
 (ns swift-ticketing.handlers
   (:require [next.jdbc :as jdbc]
+            [next.jdbc.result-set :as rs]
             ; [ring.util.response :as response]
             [swift-ticketing.db.event :as event]
             [swift-ticketing.db.ticket :as ticket]))
+
+(defn get-event [db-spec venue from to]
+  (let [events (jdbc/execute! db-spec (event/get-event venue from to) {:builder-fn rs/as-unqualified-maps})]
+    {:status 200
+     :body events}))
 
 (defn create-event [db-spec uid event-req]
   (let [event-id (java.util.UUID/randomUUID)]
