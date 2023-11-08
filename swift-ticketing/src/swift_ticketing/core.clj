@@ -1,7 +1,9 @@
 (ns swift-ticketing.core
   (:require [swift-ticketing.config :as config]
             [next.jdbc :as jdbc]
-            [next.jdbc.connection :as connection])
+            [next.jdbc.connection :as connection]
+            [ring.adapter.jetty :refer [run-jetty]]
+            [swift-ticketing.app :as app])
   (:import (com.zaxxer.hikari HikariDataSource))
   (:gen-class))
 
@@ -19,6 +21,6 @@
   (let [config (config/read-config "config.edn")]
     (with-open [^HikariDataSource ds (create-connection-pool (:database config))]
       (.close (jdbc/get-connection ds))
-      (jdbc/execute! ds ["select * from swift_ticketing.event"])
-      )
-    ))
+      ; (jdbc/execute! ds ["select * from swift_ticketing.event"])
+      (run-jetty (app/swift-ticketing-app ds) {:port (get-in config [:server :port])
+                                               :join? true}))))
