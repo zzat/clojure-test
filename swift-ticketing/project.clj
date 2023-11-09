@@ -14,7 +14,8 @@
                  [com.github.seancorfield/honeysql "2.4.1066"]
                  [com.zaxxer/HikariCP "3.3.1"]
                  [org.postgresql/postgresql "42.6.0"]
-                 [ring/ring-json "0.5.1"]]
+                 [ring/ring-json "0.5.1"]
+                 [ring/ring-mock "0.4.0"]]
   :main ^:skip-aot swift-ticketing.core
   :target-path "target/%s"
   :plugins [[lein-ring "0.12.6"]]
