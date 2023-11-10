@@ -15,7 +15,10 @@
                  [com.zaxxer/HikariCP "3.3.1"]
                  [org.postgresql/postgresql "42.6.0"]
                  [ring/ring-json "0.5.1"]
-                 [ring/ring-mock "0.4.0"]]
+                 [ring/ring-mock "0.4.0"]
+                 [org.clojure/core.async "1.6.681"]
+                 [metosin/compojure-api "2.0.0-alpha31"]
+                 ]
   :main ^:skip-aot swift-ticketing.core
   :target-path "target/%s"
   :plugins [[lein-ring "0.12.6"]]
