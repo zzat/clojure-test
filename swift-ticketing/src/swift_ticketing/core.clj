@@ -3,7 +3,8 @@
             [next.jdbc :as jdbc]
             [next.jdbc.connection :as connection]
             [ring.adapter.jetty :refer [run-jetty]]
-            [swift-ticketing.app :as app])
+            [swift-ticketing.app :as app]
+            [swift-ticketing.worker :as worker])
   (:import (com.zaxxer.hikari HikariDataSource))
   (:gen-class))
 
@@ -22,5 +23,7 @@
     (with-open [^HikariDataSource ds (create-connection-pool (:database config))]
       (.close (jdbc/get-connection ds))
       ; (jdbc/execute! ds ["select * from swift_ticketing.event"])
+      (worker/workers ds 5)
       (run-jetty (app/swift-ticketing-app ds) {:port (get-in config [:server :port])
-                                               :join? true}))))
+                                               :join? true})
+      )))
