@@ -24,7 +24,7 @@
   (d/render [home-page] (.getElementById js/document "app")))
 
 (secretary/defroute "/event" []
-  (d/render [event/event-form] (.getElementById js/document "app")))
+  (d/render [event/events-page] (.getElementById js/document "app")))
 
 (secretary/defroute "/event/create" []
   (d/render [event/event-form] (.getElementById js/document "app")))
