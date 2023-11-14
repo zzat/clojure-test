@@ -2,13 +2,15 @@
   (:require
    [reagent.core :as r]
    [reagent.dom :as d]
-   [secretary.core :as secretary]))
+   [secretary.core :as secretary]
+   [swift-ticketing-ui.event :as event]
+   ))
 
 ;; -------------------------
 ;; Views
 
 (defn start []
-  (secretary/dispatch! "/"))
+  (secretary/dispatch! "/event"))
 
 (defn home-page []
   [:div.bg-gray-50
@@ -20,6 +22,12 @@
 ;; Routes
 (secretary/defroute "/" []
   (d/render [home-page] (.getElementById js/document "app")))
+
+(secretary/defroute "/event" []
+  (d/render [event/event-form] (.getElementById js/document "app")))
+
+(secretary/defroute "/event/create" []
+  (d/render [event/event-form] (.getElementById js/document "app")))
 
 ;; -------------------------
 ;; Initialize app
