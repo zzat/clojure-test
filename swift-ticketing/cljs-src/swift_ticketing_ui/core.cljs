@@ -4,6 +4,7 @@
    [reagent.dom :as d]
    [secretary.core :as secretary]
    [swift-ticketing-ui.event :as event]
+   [swift-ticketing-ui.ticket :as ticket]
    ))
 
 ;; -------------------------
@@ -29,11 +30,13 @@
 (secretary/defroute "/event/create" []
   (d/render [event/event-form] (.getElementById js/document "app")))
 
+(secretary/defroute "/event/:event-id/ticket/create" [event-id]
+  (d/render [ticket/ticket-form event-id] (.getElementById js/document "app")))
 ;; -------------------------
 ;; Initialize app
 
 (defn mount-root []
-  (d/render [home-page] (.getElementById js/document "app")))
+  (d/render [ticket/ticket-form] (.getElementById js/document "app")))
 
 (defn ^:export init! []
   (mount-root)
