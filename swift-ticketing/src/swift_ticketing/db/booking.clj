@@ -13,7 +13,7 @@
                :where [[:= :booking_id [:cast booking-id :uuid]] 
                        ]}))
 
-(defn update-booking-status [booking-id]
-  (sql/format {:update :swift_ticketing.booking
-               :set {:booking_status [:cast "Confirmed" :swift_ticketing.booking_status]}
+(defn update-booking-status [booking-id booking-status]
+  (sql/format {:update :booking
+               :set {:booking_status [:cast booking-status :booking_status]}
                :where [:= :booking_id [:cast booking-id :uuid]]}))

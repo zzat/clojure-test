@@ -30,11 +30,14 @@
           (println "Got Message:")
           (println request)
           (jdbc/with-transaction [tx db-spec]
-            (let [selected-rows (jdbc/execute! db-spec (ticket/lock-unbooked-tickets ticket-type event-id ticket-quantity))
-                  selected-ticket-ids (map #(:ticket/ticket_id %) selected-rows)]
-              (println (ticket/update-ticket-booking-id selected-ticket-ids booking-id))
-              (jdbc/execute! db-spec (ticket/update-ticket-booking-id selected-ticket-ids booking-id)))
-            (jdbc/execute! db-spec (booking/update-booking-status booking-id))))
+            (let [selected-rows (jdbc/execute! tx (ticket/lock-unbooked-tickets ticket-type event-id ticket-quantity))
+                  selected-ticket-ids (map #(:ticket/ticket_id %) selected-rows)
+                  quantity-available? (== (count selected-rows) ticket-quantity)
+                  booking-status (if quantity-available? "Confirmed" "Rejected")]
+              ; (println (ticket/update-ticket-booking-id selected-ticket-ids booking-id))
+              (when quantity-available?
+                (jdbc/execute! tx (ticket/update-ticket-booking-id selected-ticket-ids booking-id)))
+              (jdbc/execute! tx (booking/update-booking-status booking-id booking-status)))))
         (catch Exception e
           (println (str "Exception in thread #" thread-id " :" e)))))))
 
