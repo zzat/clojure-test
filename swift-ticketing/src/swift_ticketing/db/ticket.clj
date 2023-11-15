@@ -8,12 +8,12 @@
                                      [:cast event_id :uuid]
                                      (:price ticket-req)])
         tickets (map make-ticket ticket-ids)]
-    (sql/format {:insert-into :swift_ticketing.ticket
+    (sql/format {:insert-into :ticket
                  :columns [:ticket_id :ticket_name :ticket_description :event_id :ticket_price]
                  :values tickets})))
 
 (defn lock-unbooked-tickets [ticket-type event-id ticket-quantity]
-  (sql/format {:select [:*] :from :swift_ticketing.ticket
+  (sql/format {:select [:*] :from :ticket
                :where [:and
                        [:= :event_id [:cast event-id :uuid]]
                        [:= :ticket_name ticket-type]
@@ -22,6 +22,6 @@
                :limit ticket-quantity}))
 
 (defn update-ticket-booking-id [ticket-ids booking-id]
-  (sql/format {:update :swift_ticketing.ticket
+  (sql/format {:update :ticket
                :set {:booking_id [:cast booking-id :uuid]}
                :where [:in :ticket_id ticket-ids]}))
