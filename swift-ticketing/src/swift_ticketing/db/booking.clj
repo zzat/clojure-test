@@ -2,14 +2,14 @@
   (:require [honey.sql :as sql]))
 
 (defn insert-booking [uid booking-id]
-  (sql/format {:insert-into :swift_ticketing.booking
+  (sql/format {:insert-into :booking
                  :columns [:booking_id :user_id :booking_status]
                  :values [[booking-id
                            [:cast uid :uuid]
-                           [:cast "InProcess" :swift_ticketing.booking_status]]]}))
+                           [:cast "InProcess" :booking_status]]]}))
 
 (defn get-booking-status [uid booking-id]
-  (sql/format {:select [:booking_status] :from :swift_ticketing.booking
+  (sql/format {:select [:booking_status] :from :booking
                :where [[:= :booking_id [:cast booking-id :uuid]] 
                        ]}))
 

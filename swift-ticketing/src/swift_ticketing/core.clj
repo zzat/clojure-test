@@ -11,11 +11,12 @@
 (defn create-connection-pool [database-config]
   (connection/->pool com.zaxxer.hikari.HikariDataSource
                      {:dbtype (:dbtype database-config)
-                      :dbname (:database database-config)
+                      :dbname (:dbname database-config)
                       :username (:username database-config)
                       :password (:password database-config)
                       :host (:host database-config)
-                      :port (:port database-config)}))
+                      :port (:port database-config)
+                      :schema (:schema database-config)}))
 
 (defn -main
   [& args]
