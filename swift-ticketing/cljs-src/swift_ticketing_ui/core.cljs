@@ -30,6 +30,9 @@
 (secretary/defroute "/event/create" []
   (d/render [event/event-form] (.getElementById js/document "app")))
 
+(secretary/defroute "/event/:event-id" [event-id]
+  (d/render [event/event-page event-id] (.getElementById js/document "app")))
+
 (secretary/defroute "/event/:event-id/ticket/create" [event-id]
   (d/render [ticket/ticket-form event-id] (.getElementById js/document "app")))
 ;; -------------------------
