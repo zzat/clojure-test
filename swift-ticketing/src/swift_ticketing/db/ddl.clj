@@ -40,7 +40,7 @@
                 [:ticket_description :text]
                 [:ticket_price :numeric [:not nil]]
                 [:event_id :uuid [:not nil]]
-                [:booking_id :uuid [:not nil]]
+                [:booking_id :uuid]
                 [:created_at :timestamptz [:default [:now]]]
                 [:updated_at :timestamptz [:default [:now]]]]
               }))
