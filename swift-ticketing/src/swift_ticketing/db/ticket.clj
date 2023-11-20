@@ -4,18 +4,31 @@
 
 (defonce RESERVED "Reserved")
 (defonce AVAILABLE "Available")
-(defonce BOOKED "BOOKED")
+(defonce BOOKED "Booked")
 
-(defn insert-tickets [uid event_id ticket-ids ticket-req]
-  (let [make-ticket (fn [ticket-id] [[:cast ticket-id :uuid]
-                                     (:name ticket-req)
-                                     (:description ticket-req)
-                                     [:cast event_id :uuid]
-                                     (:price ticket-req)])
-        tickets (map make-ticket ticket-ids)]
+;; seat_type
+(defonce NAMED "Named")
+(defonce GENERAL "General")
+
+(defn insert-ticket-type [event-id ticket-type-id ticket-req]
+  (let [ticket-type (:ticket_type ticket-req)
+        description (:description ticket-req)
+        reservation-timelimit-seconds (:reservation_limit_in_seconds ticket-req)
+        seat-type (:seat_type ticket-req)]
+    (sql/format {:insert-into :ticket_type
+                 :columns [:ticket_type_id :ticket_type :ticket_type_description :event_id :reservation_timelimit_seconds :seat_type]
+                 :values [[ticket-type-id ticket-type description [:cast event-id :uuid] reservation-timelimit-seconds [:cast seat-type :seat_type]]]})))
+
+(defn insert-tickets [tickets price]
+  (let [make-ticket (fn [ticket] [[:cast (:ticket-id ticket) :uuid]
+                                  (:name ticket)
+                                  price
+                                  [:cast AVAILABLE :ticket_status]])
+
+        ticket-rows (map make-ticket tickets)]
     (sql/format {:insert-into :ticket
-                 :columns [:ticket_id :ticket_name :ticket_description :event_id :ticket_price]
-                 :values tickets})))
+                 :columns [:ticket_id :ticket_name :ticket_price :ticket_status]
+                 :values ticket-rows})))
 
 (defn lock-unbooked-tickets [ticket-ids ticket-type ticket-quantity]
   (let [current-time (Instant/now)

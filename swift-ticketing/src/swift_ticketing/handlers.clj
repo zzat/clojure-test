@@ -27,12 +27,19 @@
      :body {"event_id" event-id}}))
 
 (defn create-tickets [db-spec uid event-id ticket-req]
-  (let [ticket-ids
-        (map (fn [_] (java.util.UUID/randomUUID)) (range (:quantity ticket-req)))]
-    (jdbc/execute! db-spec (ticket/insert-tickets uid event-id ticket-ids ticket-req))
+  (let [seat-type (:seat_type ticket-req)
+        tickets-map (if (= seat-type ticket/NAMED) 
+                   (:seats ticket-req)
+                   (map (fn [_] {:name ""}) (range (:quantity ticket-req))))
+        price (:price ticket-req)
+        ticket-type-id (java.util.UUID/randomUUID)
+        tickets
+        (map (fn [m] (assoc m :ticket-id (java.util.UUID/randomUUID))) tickets-map)]
+    (jdbc/execute! db-spec (ticket/insert-ticket-type event-id ticket-type-id ticket-req))
+    (jdbc/execute! db-spec (ticket/insert-tickets tickets price))
     {:status 201
      :headers {"Content-Type" "application/json"}
-     :body {"tickets" ticket-ids}}))
+     :body {"tickets" tickets}}))
 
 (defn book-ticket [db-spec uid event-id booking-req]
   (let [booking-id (java.util.UUID/randomUUID)
