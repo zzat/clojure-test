@@ -23,8 +23,10 @@
       (handlers/create-tickets db-spec (get-in cookies ["uid" :value]) (:event-id route-params) body))
     (POST "/event/:event-id/booking" {:keys [body cookies route-params]}
       (handlers/book-ticket db-spec (get-in cookies ["uid" :value]) (:event-id route-params) body))
-    (GET "/booking-status/:booking-id" {:keys [cookies route-params]}
+    (GET "/booking/:booking-id/status" {:keys [cookies route-params]}
       (handlers/get-booking-status db-spec (get-in cookies "uid" :value) (:booking-id route-params)))
+    (POST "/booking/:booking-id/payment" {:keys [cookies route-params]}
+      (handlers/make-payment db-spec (:booking-id route-params)))
     (route/not-found "Not Found")))
 
 (defn swift-ticketing-app [db-spec]
