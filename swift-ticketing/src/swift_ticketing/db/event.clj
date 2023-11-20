@@ -30,7 +30,7 @@
                         [[:min :ticket_description] :ticket_description] 
                         [[:min :ticket_price] :ticket_price]]
                :from [[:event :e]]
-               :left-join [[:ticket :t] [:= :e.event_id :t.event-id]]
+               :left-join [[:ticket :t] [:= :e.event_id :t.event_id]]
                :where [:and [:= :t.booking_id nil] [:= :e.event_id [:cast event-id :uuid] ]]
                :group-by [:e.event_id :t.ticket_name]
                }))

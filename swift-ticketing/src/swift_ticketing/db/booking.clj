@@ -1,12 +1,17 @@
 (ns swift-ticketing.db.booking
   (:require [honey.sql :as sql]))
 
+(defonce INPROCESS "InProcess")
+(defonce CONFIRMED "Confirmed")
+(defonce PAYMENTPENDING "PaymentPending")
+(defonce REJECTED "Rejected")
+
 (defn insert-booking [uid booking-id]
   (sql/format {:insert-into :booking
                  :columns [:booking_id :user_id :booking_status]
                  :values [[booking-id
                            [:cast uid :uuid]
-                           [:cast "InProcess" :booking_status]]]}))
+                           [:cast INPROCESS :booking_status]]]}))
 
 (defn get-booking-status [uid booking-id]
   (sql/format {:select [:booking_status] :from :booking

@@ -36,11 +36,15 @@
 
 (defn book-ticket [db-spec uid event-id booking-req]
   (let [booking-id (java.util.UUID/randomUUID)
-        quantity (:quantity booking-req)]
+        ticket-id (:ticket-id booking-req)]
     (jdbc/execute! db-spec (booking/insert-booking uid booking-id))
-    (worker/add-ticket-request-to-queue event-id {:booking-id booking-id
-                                                  :ticket-type (:ticket_name booking-req)
-                                                  :quantity quantity})
+    (worker/add-reserve-ticket-request-to-queue {:booking-id booking-id
+                                                 :ticket-type (:ticket_type booking-req)
+                                                 :ticket-ids (:ticket_ids booking-req)
+                                                 :quantity (:quantity booking-req)})
+    ; (worker/add-ticket-request-to-queue event-id {:booking-id booking-id
+    ;                                               :ticket-type (:ticket_name booking-req)
+    ;                                               :quantity quantity})
     {:status 201
      :headers {"Content-Type" "application/json"}
      :body {"booking_id" booking-id}}))
