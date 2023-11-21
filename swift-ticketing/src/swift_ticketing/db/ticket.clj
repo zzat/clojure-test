@@ -1,7 +1,9 @@
 (ns swift-ticketing.db.ticket
-  (:require [honey.sql :as sql])
+  (:require [honey.sql :as sql]
+            [next.jdbc.date-time :as date-time])
   (:import [java.time Instant]))
 
+;; ticket_status
 (defonce RESERVED "Reserved")
 (defonce AVAILABLE "Available")
 (defonce BOOKED "Booked")
@@ -16,18 +18,29 @@
         reservation-timelimit-seconds (:reservation_limit_in_seconds ticket-req)
         seat-type (:seat_type ticket-req)]
     (sql/format {:insert-into :ticket_type
-                 :columns [:ticket_type_id :ticket_type :ticket_type_description :event_id :reservation_timelimit_seconds :seat_type]
-                 :values [[ticket-type-id ticket-type description [:cast event-id :uuid] reservation-timelimit-seconds [:cast seat-type :seat_type]]]})))
+                 :columns [:ticket_type_id
+                           :ticket_type
+                           :ticket_type_description
+                           :event_id
+                           :reservation_timelimit_seconds
+                           :seat_type]
+                 :values [[ticket-type-id
+                           ticket-type
+                           description
+                           [:cast event-id :uuid]
+                           reservation-timelimit-seconds
+                           [:cast seat-type :seat_type]]]})))
 
-(defn insert-tickets [tickets price]
+(defn insert-tickets [ticket-type-id tickets price]
   (let [make-ticket (fn [ticket] [[:cast (:ticket-id ticket) :uuid]
                                   (:name ticket)
                                   price
-                                  [:cast AVAILABLE :ticket_status]])
+                                  [:cast AVAILABLE :ticket_status]
+                                  [:cast ticket-type-id :uuid]])
 
         ticket-rows (map make-ticket tickets)]
     (sql/format {:insert-into :ticket
-                 :columns [:ticket_id :ticket_name :ticket_price :ticket_status]
+                 :columns [:ticket_id :ticket_name :ticket_price :ticket_status :ticket_type_id]
                  :values ticket-rows})))
 
 (defn lock-unbooked-tickets [ticket-ids ticket-type ticket-quantity]

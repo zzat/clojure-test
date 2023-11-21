@@ -36,7 +36,7 @@
         tickets
         (map (fn [m] (assoc m :ticket-id (java.util.UUID/randomUUID))) tickets-map)]
     (jdbc/execute! db-spec (ticket/insert-ticket-type event-id ticket-type-id ticket-req))
-    (jdbc/execute! db-spec (ticket/insert-tickets tickets price))
+    (jdbc/execute! db-spec (ticket/insert-tickets ticket-type-id tickets price))
     {:status 201
      :headers {"Content-Type" "application/json"}
      :body {"tickets" tickets}}))
