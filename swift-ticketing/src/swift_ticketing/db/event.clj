@@ -33,6 +33,7 @@
                           :event_date
                           :venue
                           :tt.ticket_type
+                          :tt.ticket_type_id
                           [[:count :ticket_id] :ticket_count]
                           [[:min :ticket_name] :ticket_name]
                           [[:min :tt.ticket_type_description] :ticket_description]

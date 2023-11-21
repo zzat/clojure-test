@@ -1,7 +1,8 @@
 (ns swift-ticketing.db.ticket
   (:require [honey.sql :as sql]
             [next.jdbc.date-time :as date-time])
-  (:import [java.time Instant]))
+  (:import [java.time Instant]
+           [java.sql Timestamp]))
 
 ;; ticket_status
 (defonce RESERVED "Reserved")
@@ -92,3 +93,15 @@
                :from [[:booking :b]]
                :inner-join [[:ticket :t] [:= :b.booking_id :t.booking_id]]
                :where [:= :b.booking_id [:cast booking-id :uuid]]}))
+
+(defn get-unbooked-tickets [ticket-type-id]
+  (let [current-time (Instant/now)
+        reservation-expired [:and
+                             [:= :ticket.ticket_status [:cast RESERVED :ticket_status]]
+                             [:> current-time :ticket.reservation_expiration_time]]
+        tickets-available [:= :ticket.ticket_status [:cast AVAILABLE :ticket_status]]]
+    (sql/format {:select [:*]
+                 :from :ticket
+                 :where [:and
+                         [:or tickets-available reservation-expired]
+                         [:= :ticket_type_id [:cast ticket-type-id :uuid]]]})))

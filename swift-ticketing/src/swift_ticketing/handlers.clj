@@ -67,3 +67,9 @@
     {:status 200
      :headers {"Content-Type" "application/json"}
      :body {"booking_status" result}}))
+
+(defn get-tickets [db-spec ticket-type-id]
+  (let [tickets (jdbc/execute! db-spec (ticket/get-unbooked-tickets ticket-type-id) {:builder-fn rs/as-unqualified-maps})]
+    {:status 200
+     :headers {"Content-Type" "application/json"}
+     :body tickets}))
