@@ -28,9 +28,9 @@
 
 (defn create-tickets [db-spec uid event-id ticket-req]
   (let [seat-type (:seat_type ticket-req)
-        tickets-map (if (= seat-type ticket/NAMED) 
-                   (:seats ticket-req)
-                   (map (fn [_] {:name ""}) (range (:quantity ticket-req))))
+        tickets-map (if (= seat-type ticket/NAMED)
+                      (:seats ticket-req)
+                      (map (fn [_] {:name ""}) (range (:quantity ticket-req))))
         price (:price ticket-req)
         ticket-type-id (java.util.UUID/randomUUID)
         tickets
@@ -46,8 +46,9 @@
         ticket-id (:ticket-id booking-req)]
     (jdbc/execute! db-spec (booking/insert-booking uid booking-id))
     (worker/add-reserve-ticket-request-to-queue {:booking-id booking-id
-                                                 :ticket-type (:ticket_type booking-req)
-                                                 :ticket-ids (:ticket_ids booking-req)
+                                                 :ticket-type-id (:ticket_type_id booking-req)
+                                                 :ticket-ids (map #(java.util.UUID/fromString %)
+                                                                  (:ticket_ids booking-req))
                                                  :quantity (:quantity booking-req)})
     ; (worker/add-ticket-request-to-queue event-id {:booking-id booking-id
     ;                                               :ticket-type (:ticket_name booking-req)
@@ -57,7 +58,7 @@
      :body {"booking_id" booking-id}}))
 
 (defn make-payment [db-spec booking-id]
-  ((worker/add-reserve-ticket-request-to-queue {:booking-id booking-id})
+  ((worker/add-book-ticket-request-to-queue {:booking-id booking-id})
    {:status 201
     :headers {"Content-Type" "application/json"}
     :body {"booking_id" booking-id}}))

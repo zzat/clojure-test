@@ -44,17 +44,21 @@
                  :columns [:ticket_id :ticket_name :ticket_price :ticket_status :ticket_type_id]
                  :values ticket-rows})))
 
-(defn lock-unbooked-tickets [ticket-ids ticket-type ticket-quantity]
+(defn lock-unbooked-tickets [ticket-ids ticket-type-id ticket-quantity]
   (let [current-time (Instant/now)
         reservation-expired [:and
-                             [:= :ticket.ticket_status RESERVED]
+                             [:= :ticket.ticket_status [:cast RESERVED :ticket_status]]
                              [:> current-time :ticket.reservation_expiration_time]]
-        tickets-available [:= :ticket.ticket_status AVAILABLE]
+        tickets-available [:= :ticket.ticket_status [:cast AVAILABLE :ticket_status]]
         where-clause (if (nil? ticket-ids)
                        [:and
-                        [:= :ticket.ticket_type_id [:cast ticket-type :uuid]]
+                        [:= :ticket.ticket_type_id [:cast ticket-type-id :uuid]]
                         [:or tickets-available reservation-expired]]
-                       [:in :ticket_id ticket-ids])
+                        ; tickets-available]
+                       ; [:in :ticket_id [:cast ticket-ids [:raw "uuid[]"] ]])
+                       [:and
+                        [:in :ticket_id ticket-ids]
+                        [:or tickets-available reservation-expired]])
         quantity (if (nil? ticket-ids) ticket-quantity (count ticket-ids))]
 
     (sql/format {:select [:*]
@@ -67,19 +71,19 @@
 (defn lock-reserved-tickets [booking-id]
   (sql/format {:select [:*]
                :from :ticket
-               :where [:and [:= :ticket_status RESERVED] [:= :booking_id [:cast booking-id :uuid]]]
+               :where [:and [:= :ticket_status [:cast RESERVED :ticket_status]] [:= :booking_id [:cast booking-id :uuid]]]
                :for [:update :skip-locked]}))
 
 (defn reserve-tickets [ticket-ids booking-id reservation-expiration-time]
   (sql/format {:update :ticket
                :set {:booking_id [:cast booking-id :uuid]
-                     :ticket_status RESERVED
+                     :ticket_status [:cast RESERVED :ticket_status]
                      :reservation_expiration_time reservation-expiration-time}
                :where [:in :ticket_id ticket-ids]}))
 
 (defn confirm-tickets [ticket-ids]
   (sql/format {:update :ticket
-               :set {:ticket_status BOOKED
+               :set {:ticket_status [:cast BOOKED :ticket_status]
                      :reservation_expiration_time nil}
                :where [:in :ticket_id ticket-ids]}))
 

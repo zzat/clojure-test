@@ -4,6 +4,7 @@
             [swift-ticketing.db.ticket :as ticket]
             [swift-ticketing.db.booking :as booking]
             [next.jdbc :as jdbc]
+            [next.jdbc.date-time :as date-time]
             [clojure.core :as c])
   (:import [java.time Instant Duration]))
 
@@ -19,12 +20,12 @@
   (let [event-type reserve-event
         booking-id (:booking-id request)
         ticket-ids (:ticket-ids request)
-        ticket-type (:ticket-type request)
+        ticket-type-id (:ticket-type-id request)
         quantity (:quantity request)]
     (add-ticket-request-to-queue {:event event-type
                                   :data {:booking-id booking-id
                                          :ticket-ids ticket-ids
-                                         :ticket-type ticket-type
+                                         :ticket-type-id ticket-type-id
                                          :quantity quantity}})))
 
 (defn add-book-ticket-request-to-queue [request]
@@ -36,14 +37,12 @@
 (defn handle-reserve-event [db-spec request]
   (let [booking-id (get-in request [:data :booking-id])
         ticket-ids (get-in request [:data :ticket-ids])
-        ticket-type (get-in request [:data :ticket-type])
+        ticket-type-id (get-in request [:data :ticket-type-id])
         ticket-quantity (get-in request [:data :quantity])]
-    (println "Got Message:")
-    (println request)
     (jdbc/with-transaction [tx db-spec]
-      (let [selected-rows (jdbc/execute! tx (ticket/lock-unbooked-tickets ticket-ids ticket-type ticket-quantity))
+      (let [selected-rows (jdbc/execute! tx (ticket/lock-unbooked-tickets ticket-ids ticket-type-id ticket-quantity))
             selected-ticket-ids (map #(:ticket/ticket_id %) selected-rows)
-            quantity-available? (== (count selected-rows) ticket-quantity)
+            quantity-available? (= (count selected-rows) ticket-quantity)
             booking-status (if quantity-available? booking/PAYMENTPENDING booking/REJECTED)
             reservation-timelimit-seconds (:ticket_type/reservation_timelimit_seconds (first selected-rows))
             current-time (Instant/now)
@@ -60,7 +59,7 @@
   (jdbc/with-transaction [tx db-spec]
     (let [booking-id (get-in request [:data :booking-id])
           selected-ticket-ids (->> (jdbc/execute! tx (ticket/lock-reserved-tickets booking-id))
-                               (map #(:ticket/ticket_id %)))]
+                                   (map #(:ticket/ticket_id %)))]
       (jdbc/execute! tx (ticket/confirm-tickets selected-ticket-ids))
       (jdbc/execute! tx (booking/update-booking-status booking-id booking/CONFIRMED)))))
 
@@ -69,8 +68,7 @@
     (while true
       (try
         (let [request (async/<! ticket-queue)
-              event-type (:event request)
-              ]
+              event-type (:event request)]
           (println "Got Message:")
           (println request)
           (cond
