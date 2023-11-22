@@ -58,10 +58,10 @@
      :body {"booking_id" booking-id}}))
 
 (defn make-payment [db-spec booking-id]
-  ((worker/add-book-ticket-request-to-queue {:booking-id booking-id})
+  (worker/add-book-ticket-request-to-queue {:booking-id booking-id})
    {:status 201
     :headers {"Content-Type" "application/json"}
-    :body {"booking_id" booking-id}}))
+    :body {"booking_id" booking-id}})
 
 (defn get-booking-status [db-spec uid booking-id]
   (let [result (:booking/booking_status (jdbc/execute-one! db-spec (booking/get-booking-status uid booking-id)))]

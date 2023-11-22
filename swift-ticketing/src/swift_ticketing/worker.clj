@@ -42,7 +42,8 @@
     (jdbc/with-transaction [tx db-spec]
       (let [selected-rows (jdbc/execute! tx (ticket/lock-unbooked-tickets ticket-ids ticket-type-id ticket-quantity))
             selected-ticket-ids (map #(:ticket/ticket_id %) selected-rows)
-            quantity-available? (= (count selected-rows) ticket-quantity)
+            quantity-available? (= (count selected-rows)
+                                   (if (nil? ticket-ids) ticket-quantity (count ticket-ids)))
             booking-status (if quantity-available? booking/PAYMENTPENDING booking/REJECTED)
             reservation-timelimit-seconds (:ticket_type/reservation_timelimit_seconds (first selected-rows))
             current-time (Instant/now)
@@ -51,6 +52,7 @@
                                           (.plus current-time
                                                  (Duration/ofSeconds reservation-timelimit-seconds)))]
               ; (println (ticket/update-ticket-booking-id selected-ticket-ids booking-id))
+        (println selected-rows)
         (when quantity-available?
           (jdbc/execute! tx (ticket/reserve-tickets selected-ticket-ids booking-id reservation-expiration-time)))
         (jdbc/execute! tx (booking/update-booking-status booking-id booking-status))))))
