@@ -21,9 +21,9 @@
 
 (defn ticket-form [event-id]
   (let [ticket-state (r/atom {:name ""
-                             :description ""
-                             :quantity 0
-                             :price 0})
+                              :description ""
+                              :quantity 0
+                              :price 0})
         handler (fn [[ok response]]
                   (if ok
                     (do
