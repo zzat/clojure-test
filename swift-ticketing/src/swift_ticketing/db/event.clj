@@ -34,6 +34,7 @@
                           :venue
                           :tt.ticket_type
                           :tt.ticket_type_id
+                          :tt.seat_type
                           [[:count :ticket_id] :ticket_count]
                           [[:min :ticket_name] :ticket_name]
                           [[:min :tt.ticket_type_description] :ticket_description]
