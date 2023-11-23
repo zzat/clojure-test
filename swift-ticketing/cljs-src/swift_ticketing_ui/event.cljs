@@ -3,6 +3,7 @@
    [ajax.core :as ajax]
    [reagent.core :as r]
    [secretary.core :as secretary]
+   [accountant.core :as accountant]
    [camel-snake-kebab.extras :as cske]
    [camel-snake-kebab.core :as csk]))
 
@@ -31,7 +32,7 @@
         handler (fn [[ok response]]
                   (if ok
                     (do
-                      (secretary/dispatch! "/event"))
+                      (accountant/navigate! "/event"))
                     (js/alert "Couldn't create the Event")))]
     (fn []
       [:div
@@ -80,7 +81,7 @@
     :response-format (ajax/json-response-format {:keywords? true})}))
 
 (defn event-card [event]
-  [:a {:href "#" :class "group" :on-click (fn [] (secretary/dispatch! (str "/event/" (:event-id event))))}
+  [:a {:href "#" :class "group" :on-click (fn [] (accountant/navigate! (str "/event/" (:event-id event))))}
    [:div {:class "aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg sm:aspect-h-3 sm:aspect-w-2"}
     [:img {:src "https://images.pexels.com/photos/976866/pexels-photo-976866.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" :class "h-full w-full object-cover object-center group-hover:opacity-75" :alt "Product"}]]
    [:div {:class "mt-4 flex items-center justify-between text-base font-medium text-gray-900"}
@@ -93,14 +94,13 @@
    [:div {:class "py-24 text-center"}
     [:h1 {:class "text-4xl font-bold tracking-tight text-gray-900"} "Events"]
     [:p {:class "mx-auto mt-4 max-w-3xl text-base text-gray-500"} "Book Events"]
-   [:button {:class "float-right rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              :on-click #(secretary/dispatch! (str "/event/create"))} "Create Event"]
-    ]
+    [:button {:class "float-right rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              :on-click #(accountant/navigate! (str "/event/create"))} "Create Event"]]
    [:section.mt-8
     [:h2#products-heading.sr-only "Events"]
     [:div {:class "grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8"}
      (for [event events]
-       ^{:key (:id (:event_id event))} [event-card event])]]])
+       ^{:key (:event-id event)} [event-card event])]]])
 
 (defn events-page []
   (let [loading (r/atom true)
@@ -146,7 +146,7 @@
         booking-handler (fn [[ok response]]
                           (if ok
                             (do
-                              (secretary/dispatch! (str "/booking/payment/" (:booking-id (cske/transform-keys csk/->kebab-case-keyword response)))))
+                              (accountant/navigate! (str "/booking/payment/" (:booking-id (cske/transform-keys csk/->kebab-case-keyword response)))))
                             (println "Booking Failed")))
         generalTicket? (= "General" (:seat-type ticket))
         button-class (str "rounded-md border border-transparent bg-indigo-600 "
@@ -165,7 +165,7 @@
                                                             (:ticket-type-id ticket))}
                                        "Buy Tickets"]
         select-seats-button [:button {:class button-class
-                                      :on-click (fn [] (secretary/dispatch! (str "/event/" (:event-id ticket) "/ticket/" (:ticket-type-id ticket))))}
+                                      :on-click (fn [] (accountant/navigate! (str "/event/" (:event-id ticket) "/ticket/" (:ticket-type-id ticket))))}
                              "Select Seats"]
         quantity-selector [:select {:class quantity-selector-class
                                     :on-change #(reset! selected-quantity (-> % .-target .-value js/parseInt))}
@@ -196,13 +196,13 @@
   [:div.grid-cols-2
    [:div {:class "mx-auto max-w-2xl px-4 pb-24 pt-16 sm:px-6 lg:max-w-7xl lg:px-8"}
     [:button {:class "float-right rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              :on-click #(secretary/dispatch! (str "/event/" (:event-id (first tickets)) "/ticket/create"))} "Create Tickets"]
+              :on-click #(accountant/navigate! (str "/event/" (:event-id (first tickets)) "/ticket/create"))} "Create Tickets"]
     [:h1 {:class "text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl"} (:event-name (first tickets))]
     [:p {:class "py-4 text-gray-500"} (:event-description (first tickets))]
     [:section {:class "lg:col-span-7"}
      [:ul {:role "list" :class "divide-y divide-gray-200 border-b border-t border-gray-200"}
       (for [ticket tickets]
-        ^{:key (:ticket-name ticket)} (ticket-card ticket booking-id))]]]])
+        ^{:key (:ticket-type-id ticket)} (ticket-card ticket booking-id))]]]])
 
 (defn event-page [event-id]
   (let [loading (r/atom true)

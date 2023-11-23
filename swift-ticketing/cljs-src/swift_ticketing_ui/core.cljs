@@ -3,6 +3,7 @@
    [reagent.core :as r]
    [reagent.dom :as d]
    [secretary.core :as secretary]
+   [accountant.core :as accountant]
    [swift-ticketing-ui.event :as event]
    [swift-ticketing-ui.ticket :as ticket]
    [swift-ticketing-ui.booking :as booking]))
@@ -51,5 +52,11 @@
 (defn mount-root []
   (d/render [event/events-page] (.getElementById js/document "app")))
 
+; (defn ^:export init! []
+;   (mount-root))
+
 (defn ^:export init! []
-  (mount-root))
+  (accountant/configure-navigation!
+   {:nav-handler   (fn [path] (secretary/dispatch! path))
+    :path-exists?  (fn [path] (secretary/locate-route path))})
+  (accountant/dispatch-current!))

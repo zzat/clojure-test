@@ -3,6 +3,7 @@
    [ajax.core :as ajax]
    [reagent.core :as r]
    [secretary.core :as secretary]
+   [accountant.core :as accountant]
    [camel-snake-kebab.extras :as cske]
    [camel-snake-kebab.core :as csk]))
 
@@ -27,7 +28,7 @@
         handler (fn [[ok response]]
                   (if ok
                     (do
-                      (secretary/dispatch! "/event"))
+                      (accountant/navigate! "/event"))
                     (js/alert "Couldn't create tickets!")))]
     (fn []
       [:div
@@ -80,12 +81,12 @@
   (let [handler (fn [[ok response]]
                   (if ok
                     (do
-                      (secretary/dispatch! "/event"))
+                      (accountant/navigate! "/event"))
                     (js/alert "Couldn't create tickets!")))
         booking-handler (fn [[ok response]]
                           (if ok
                             (do
-                              (secretary/dispatch! (str "/booking/payment/" (:booking-id (cske/transform-keys csk/->kebab-case-keyword response)))))
+                              (accountant/navigate! (str "/booking/payment/" (:booking-id (cske/transform-keys csk/->kebab-case-keyword response)))))
                             (println "Booking Failed")))
         button-class (str "rounded-md border border-transparent bg-indigo-600 "
                           "px-4 py-2 text-base font-medium text-white shadow-sm "
@@ -135,7 +136,7 @@
                           (do
                             (reset! loading false)
                             (reset! seats (cske/transform-keys csk/->kebab-case-keyword response))
-                            ; (secretary/dispatch! "/event")
+                            ; (accountant/navigate! "/event")
                             )
                           (reset! loading false)))]
           (get-tickets (str "http://127.0.0.1:9090/ticket") ticket-type-id handler)))
