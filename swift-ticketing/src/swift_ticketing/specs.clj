@@ -10,9 +10,12 @@
     (java.util.UUID/fromString x)
     (catch Exception e false)))
 
-(s/def ::venue string?)
-(s/def ::to string?)
-(s/def ::from string?)
+(defn nilable [pred]
+  (fn [x] (or (nil? x) (string? x))))
+
+(s/def ::venue (nilable string?))
+(s/def ::to (nilable string?))
+(s/def ::from (nilable string?))
 
 (s/def ::name string?)
 (s/def ::description string?)
