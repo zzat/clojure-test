@@ -10,6 +10,7 @@
             [swift-ticketing.worker :as worker]))
 
 (defn validate-req [req spec handler]
+  (println req)
   (if (s/valid? spec req)
     (handler)
     {:status 400
@@ -57,7 +58,8 @@
     (jdbc/execute! db-spec (ticket/insert-tickets ticket-type-id tickets price))
     {:status 201
      :headers {"Content-Type" "application/json"}
-     :body {"tickets" tickets}}))
+     :body {"ticket_type_id" ticket-type-id 
+            "tickets" tickets}}))
 
 (defn create-tickets-handler [db-spec uid event-id ticket-req]
   (and 
@@ -83,7 +85,7 @@
 (defn book-ticket-handler [db-spec uid event-id booking-req]
   (and 
     (s/valid? event-id ::specs/event-id)
-    (validate-req booking-req ::specs/create-booking-params #(book-ticket db-spec uid event-id booking-req))))
+    (validate-req booking-req ::specs/create-tickets-params #(book-ticket db-spec uid event-id booking-req))))
 
 (defn post-payment [db-spec booking-id]
   (worker/add-book-ticket-request-to-queue {:booking-id booking-id})
@@ -93,6 +95,15 @@
 
 (defn post-payment-handler [db-spec booking-id]
   (validate-req booking-id ::specs/booking-id #(post-payment db-spec booking-id)))
+
+(defn cancel-booking [db-spec booking-id]
+  (worker/add-cancel-ticket-request-to-queue {:booking-id booking-id})
+  {:status 201
+   :headers {"Content-Type" "application/json"}
+   :body {"booking_id" booking-id}})
+
+(defn cancel-booking-handler [db-spec booking-id]
+  (validate-req booking-id ::specs/booking-id #(cancel-booking db-spec booking-id)))
 
 (defn get-booking-status [db-spec uid booking-id]
   (let [result (:booking/booking_status (jdbc/execute-one! db-spec (booking/get-booking-status uid booking-id)))]

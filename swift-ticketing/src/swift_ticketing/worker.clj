@@ -12,6 +12,7 @@
 
 (def reserve-event "RESERVE")
 (def book-event "BOOK")
+(def cancel-event "CANCEL")
 
 (defn add-ticket-request-to-queue [request]
   (async/go (async/>! ticket-queue request)))
@@ -30,6 +31,12 @@
 
 (defn add-book-ticket-request-to-queue [request]
   (let [event-type book-event
+        booking-id (:booking-id request)]
+    (add-ticket-request-to-queue {:event event-type
+                                  :data {:booking-id booking-id}})))
+
+(defn add-cancel-ticket-request-to-queue [request]
+  (let [event-type cancel-event
         booking-id (:booking-id request)]
     (add-ticket-request-to-queue {:event event-type
                                   :data {:booking-id booking-id}})))
@@ -65,6 +72,14 @@
       (jdbc/execute! tx (ticket/confirm-tickets selected-ticket-ids))
       (jdbc/execute! tx (booking/update-booking-status booking-id booking/CONFIRMED)))))
 
+(defn handle-cancel-event [db-spec request]
+  (jdbc/with-transaction [tx db-spec]
+    (let [booking-id (get-in request [:data :booking-id])
+          selected-ticket-ids (->> (jdbc/execute! tx (ticket/lock-reserved-tickets booking-id))
+                                   (map #(:ticket/ticket_id %)))]
+      (jdbc/execute! tx (ticket/cancel-tickets selected-ticket-ids))
+      (jdbc/execute! tx (booking/update-booking-status booking-id booking/CANCELED)))))
+
 (defn process-ticket-requests [thread-id db-spec]
   (async/go
     (while true
@@ -76,6 +91,7 @@
           (cond
             (= event-type reserve-event) (handle-reserve-event db-spec request)
             (= event-type book-event) (handle-book-event db-spec request)
+            (= event-type cancel-event) (handle-cancel-event db-spec request)
             :else (println "Worker: Unknown event")))
         (catch Exception e
           (println (str "Exception in thread #" thread-id " :" e)))))))

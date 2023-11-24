@@ -5,6 +5,7 @@
 (defonce CONFIRMED "Confirmed")
 (defonce PAYMENTPENDING "PaymentPending")
 (defonce REJECTED "Rejected")
+(defonce CANCELED "Canceled")
 
 (defn insert-booking [uid booking-id]
   (sql/format {:insert-into :booking

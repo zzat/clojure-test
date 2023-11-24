@@ -81,11 +81,17 @@
                      :reservation_expiration_time reservation-expiration-time}
                :where [:in :ticket_id ticket-ids]}))
 
-(defn confirm-tickets [ticket-ids]
+(defn reset-ticket-status [ticket-ids status]
   (sql/format {:update :ticket
-               :set {:ticket_status [:cast BOOKED :ticket_status]
+               :set {:ticket_status [:cast status :ticket_status]
                      :reservation_expiration_time nil}
                :where [:in :ticket_id ticket-ids]}))
+
+(defn confirm-tickets [ticket-ids]
+  (reset-ticket-status ticket-ids BOOKED))
+
+(defn cancel-tickets [ticket-ids]
+  (reset-ticket-status ticket-ids AVAILABLE))
 
 (defn update-ticket-booking-id [ticket-ids booking-id]
   (sql/format {:update :ticket
