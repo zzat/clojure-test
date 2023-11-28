@@ -1,7 +1,6 @@
 (ns swift-ticketing.db.event
   (:require [honey.sql :as sql]
-            [swift-ticketing.db.ticket :as ticket]
-            [next.jdbc.date-time :as date-time])
+            [swift-ticketing.db.ticket :as ticket])
   (:import [java.time Instant]))
 
 (defn insert-event [uid event_id event-req]
@@ -25,7 +24,9 @@
   (let [current-time (Instant/now)
         reservation-expired [:and
                              [:= :ticket.ticket_status [:cast ticket/RESERVED :ticket_status]]
-                             [:> current-time :ticket.reservation_expiration_time]]
+                             [:or 
+                              [:> current-time :ticket.reservation_expiration_time] 
+                              [:= :ticket.reservation-expiration-time nil]]]
         tickets-available [:= :ticket.ticket_status [:cast ticket/AVAILABLE :ticket_status]]]
     (sql/format {:select [:e.event_id
                           :event_name
