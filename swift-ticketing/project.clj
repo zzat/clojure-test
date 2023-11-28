@@ -18,7 +18,8 @@
                  [ring/ring-mock "0.4.0"]
                  [org.clojure/core.async "1.6.681"]
                  [metosin/compojure-api "2.0.0-alpha31"]
-                 [org.clojure/data.json "2.4.0"]]
+                 [org.clojure/data.json "2.4.0"]
+                 [com.taoensso/carmine "3.3.2"]]
   :main ^:skip-aot swift-ticketing.core
   :target-path "target/%s"
   :plugins [[lein-ring "0.12.6"]]
