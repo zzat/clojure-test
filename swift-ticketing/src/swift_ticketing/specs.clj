@@ -44,7 +44,7 @@
   (or (s/keys :req-un [::ticket_type ::seat_type ::description ::quantity ::ticket_type_id ::price]) 
         (s/keys :req-un [::ticket_type ::seat_type ::description ::seats ::reservation_limit_in_seconds ::price])))
 
-(s/def ::book-ticket-params
+(s/def ::reserve-tickets-params
   (or (s/keys :req-un [::quantity ::ticket_type_id]) 
         (s/keys :req-un [::ticket_ids])))
 
