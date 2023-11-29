@@ -9,7 +9,7 @@
   (:import (com.zaxxer.hikari HikariDataSource))
   (:gen-class))
 
-(defn- create-connection-pool [database-config]
+(defn create-connection-pool [database-config]
   (connection/->pool com.zaxxer.hikari.HikariDataSource
                      {:dbtype (:dbtype database-config)
                       :dbname (:dbname database-config)
