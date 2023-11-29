@@ -1,0 +1,10 @@
+{:server 
+ {:port #long #or [#env SWIFT_API_SERVER_PORT 9091]}
+ :database
+  {:dbtype "postgres"
+   :host "localhost"
+   :port 5433
+   :dbname "postgres"
+   :username "postgres"
+   :password "mysecretpassword"
+   :schema "swift_ticketing_test"}}
