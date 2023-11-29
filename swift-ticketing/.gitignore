@@ -12,3 +12,15 @@ pom.xml.asc
 .hgignore
 .hg/
 **/.DS_Store
+node_modules/*
+public/css/* 
+public/js/*
+/.clj-kondo/
+**.clj-kondo/
+**/.clj-kondo/
+**/.clj-kondo/*
+/.lsp/
+jmeter.log
+.shadow-cljs
+resources/config.edn
+resources/config.test.edn
