@@ -3,7 +3,8 @@
 
 (defn date? [date]
   (let [date-regex #"\d{4}-\d{2}-\d{2}"]
-    (and (string? date) (re-matches date-regex date))))
+    (boolean 
+      (and (string? date) (re-matches date-regex date)))))
 
 (defn uuid? [x]
   (try
@@ -11,11 +12,11 @@
     (catch Exception e false)))
 
 (defn nilable [pred]
-  (fn [x] (or (nil? x) (string? x))))
+  (fn [x] (or (nil? x) (pred x))))
 
 (s/def ::venue (nilable string?))
-(s/def ::to (nilable string?))
-(s/def ::from (nilable string?))
+(s/def ::to (nilable date?))
+(s/def ::from (nilable date?))
 
 (s/def ::name string?)
 (s/def ::description string?)
@@ -41,8 +42,8 @@
   (s/keys :req-un [::name ::description ::date ::venue]))
 
 (s/def ::create-tickets-params
-  (or (s/keys :req-un [::ticket_type ::seat_type ::description ::quantity ::ticket_type_id ::price]) 
-        (s/keys :req-un [::ticket_type ::seat_type ::description ::seats ::reservation_limit_in_seconds ::price])))
+  (s/keys :req-un [(or (and ::ticket_type ::seat_type ::description ::quantity ::price)
+                         (and ::ticket_type ::seat_type ::description ::seats ::reservation_limit_in_seconds ::price))]))
 
 (s/def ::reserve-tickets-params
   (or (s/keys :req-un [::quantity ::ticket_type_id]) 
