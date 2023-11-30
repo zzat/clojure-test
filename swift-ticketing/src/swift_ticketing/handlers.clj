@@ -36,7 +36,7 @@
     (validate-req params ::specs/get-event-params #(get-events db-spec venue from to))))
 
 (defn- get-event [db-spec event-id]
-  (let [event (jdbc/execute! db-spec (event/get-event event-id) {:builder-fn rs/as-unqualified-maps})]
+  (let [event (jdbc/execute! db-spec (event/get-event-with-tickets event-id) {:builder-fn rs/as-unqualified-maps})]
     (respond-200 event)))
 
 (defn get-event-handler [db-spec event-id]

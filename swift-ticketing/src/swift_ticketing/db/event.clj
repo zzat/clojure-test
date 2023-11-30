@@ -21,6 +21,10 @@
                        (if (nil? to) [true] [:<= :event_date [:cast to :date]])]}))
 
 (defn get-event [event-id]
+  (sql/format {:select [:event_id :event_name :event_description :event_date :venue] :from :event
+               :where [:= :event_id [:cast event-id :uuid]]}))
+
+(defn get-event-with-tickets [event-id]
   (let [current-time (Instant/now)
         reservation-expired [:and
                              [:= :ticket.ticket_status [:cast ticket/RESERVED :ticket_status]]
