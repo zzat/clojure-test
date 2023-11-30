@@ -23,7 +23,7 @@
 
 (defn -main
   [& args]
-  (let [config (config/read-config "config.edn")
+  (let [config (config/read-app-config)
         redis-config {:pool redis-conn-pool
                       :spec (:redis config)}
         locking-strategy (:locking-strategy config)]

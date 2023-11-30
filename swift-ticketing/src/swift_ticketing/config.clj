@@ -6,3 +6,6 @@
   (-> cfg-path
       (io/resource)
       (aero/read-config)))
+
+(defn read-app-config [] (read-config "config.edn"))
+(defn read-test-config [] (read-config "config.test.edn"))
