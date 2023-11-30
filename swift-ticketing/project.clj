@@ -19,10 +19,13 @@
                  [org.clojure/core.async "1.6.681"]
                  [metosin/compojure-api "2.0.0-alpha31"]
                  [org.clojure/data.json "2.4.0"]
-                 [com.taoensso/carmine "3.3.2"]]
+                 [com.taoensso/carmine "3.3.2"]
+                 [ragtime "0.8.0"]]
   :main ^:skip-aot swift-ticketing.core
   :target-path "target/%s"
   :plugins [[lein-ring "0.12.6"]]
   :ring {:handler swift-ticketing.app/swift-ticketing-app}
+  :aliases {"migrate" ["run" "-m" "swift-ticketing.migrations/migrate"]
+            "rollback" ["run" "-m" "swift-ticketing.migrations/rollback"]}
   :profiles {:uberjar {:aot :all
                        :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}})
