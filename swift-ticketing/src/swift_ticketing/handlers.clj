@@ -28,7 +28,7 @@
     (respond-400 (s/explain-data spec req))))
 
 (defn- get-events [db-spec venue from to]
-  (let [events (jdbc/execute! db-spec (event/get-events venue from to) {:builder-fn rs/as-unqualified-maps})]
+  (let [events (event/get-events db-spec venue from to)]
     (respond-200 events)))
 
 (defn get-events-handler [db-spec venue from to]
@@ -36,7 +36,7 @@
     (validate-req params ::specs/get-event-params #(get-events db-spec venue from to))))
 
 (defn- get-event [db-spec event-id]
-  (let [event (jdbc/execute! db-spec (event/get-event-with-tickets event-id) {:builder-fn rs/as-unqualified-maps})]
+  (let [event (event/get-event-with-tickets db-spec event-id)]
     (respond-200 event)))
 
 (defn get-event-handler [db-spec event-id]
@@ -44,7 +44,7 @@
 
 (defn- create-event [db-spec uid event-req]
   (let [event-id (java.util.UUID/randomUUID)]
-    (jdbc/execute! db-spec (event/insert-event uid event-id event-req))
+    (event/insert-event db-spec uid event-id event-req)
     (respond-201 {"event_id" event-id})))
 
 (defn create-event-handler [db-spec uid event-req]
