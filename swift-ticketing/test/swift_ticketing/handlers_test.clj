@@ -2,16 +2,14 @@
   (:require [clojure.test :refer :all]
             [ring.mock.request :as mock]
             [next.jdbc :as jdbc]
-            [next.jdbc.result-set :as rs]
-            [honey.sql :as sql]
-            [next.jdbc.connection :as connection]
             [clojure.data.json :as json]
             [clojure.set :as s]
+            [clojure.walk :refer [keywordize-keys]]
             [swift-ticketing.app :refer [swift-ticketing-app]]
             [swift-ticketing.fixtures :as fixtures]
             [swift-ticketing.factory :as factory]
             [swift-ticketing.utils :as utils]
-            [swift-ticketing.db.event :as event]
+            [swift-ticketing.db.event :as db-event]
             [swift-ticketing.specs :as specs]))
 
 (use-fixtures :once fixtures/fixture)
@@ -37,9 +35,7 @@
                 to-db-event (s/rename-keys request {"name" "event_name"
                                                     "description" "event_description"
                                                     "date" "event_date"})
-                created-event (jdbc/execute!
-                               db-spec
-                               (event/get-event event-id))]
+                created-event (db-event/get-event db-spec event-id)]
             (is (= (:status response) 201))
             (is ((comp not nil?) event-id) "Should return an event_id")
             (is (utils/submap? (to-db-event request) created-event)
@@ -116,6 +112,20 @@
                 ;; invalid requests dhould return 400
                   (is (every? #(= (:status %) 400) invalid-responses))
                 ;; check for empty response
-                  (is (empty? (:body (response-to-json non-existent-venue-resp)))))))))))))
+                  (is (empty? (:body (response-to-json non-existent-venue-resp))))))))))
 
-; (run-test test-handlers)
+      (testing "Fetching event with tickets info"
+        (let [event-id (java.util.UUID/randomUUID)
+              expected [(factory/event-with-tickets event-id)]]
+          (with-redefs [db-event/get-event-with-tickets (constantly expected)]
+            (let [response (-> (mock/request :get (str "/event/" event-id))
+                               app)
+                  actual (-> response
+                             :body
+                             json/read-str
+                             keywordize-keys)]
+
+              (is (= (:status response) 200))
+              (is (= actual expected)))))))))
+
+(run-test test-handlers)
