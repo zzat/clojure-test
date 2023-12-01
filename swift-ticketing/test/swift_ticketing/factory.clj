@@ -1,4 +1,7 @@
-(ns swift-ticketing.factory)
+(ns swift-ticketing.factory
+  (:require
+   [next.jdbc :as jdbc]
+   [honey.sql :as sql]))
 
 (defn mk-prefix [x]
   (str x "-"))
@@ -25,6 +28,7 @@
   (apply format "%4d-%02d-%02d" [(+ 2023 (rand-int 5))
                                  (inc (rand-int 12))
                                  (inc (rand-int 28))]))
+
 (defn event-request []
   (let [random-id (rand-int 10000)]
     {"name" (mk-event-name random-id)
@@ -46,3 +50,30 @@
      :ticket_name (mk-ticket-name event-id)
      :ticket_description (mk-ticket-description event-id)
      :ticket_price (rand-int 10000)}))
+
+(defn general-ticket-request [event-id]
+  (let [random-id (rand-int 10000)]
+    {"ticket_type" (mk-ticket-type random-id)
+     "description" (mk-ticket-description random-id)
+     "seat_type" "General"
+     "quantity" (inc (rand-int 1000))
+     "price" (inc (rand-int 2000))}))
+
+(defn seated-ticket-request [event-id]
+  (let [random-id (rand-int 10000)
+        seat (fn [x] {"name" (str x)})]
+    {"ticket_type" (mk-ticket-type random-id)
+     "description" (mk-ticket-description random-id)
+     "seat_type" "General"
+     "reservation_limit_in_seconds" (+ 50 (rand-int 200))
+     "seats" (for [x (range (inc (rand-int 20)))] (seat x))
+     "price" (inc (rand-int 2000))}))
+
+(defn add-user-table-entry [db-spec]
+  (let [user-id (java.util.UUID/randomUUID)
+        insert-user (sql/format {:insert-into :user_account
+                                 :columns [:user_id :name]
+                                 :values [[user-id
+                                           "Test User"]]})]
+    (jdbc/execute! db-spec insert-user)
+    user-id))
