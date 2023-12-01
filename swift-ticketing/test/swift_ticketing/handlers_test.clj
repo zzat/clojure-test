@@ -12,7 +12,7 @@
             [swift-ticketing.db.event :as db-event]
             [swift-ticketing.specs :as specs]))
 
-(use-fixtures :once fixtures/fixture)
+(use-fixtures :each fixtures/run-migrations)
 
 (deftest test-handlers
   (testing "HTTP handlers:"
