@@ -34,7 +34,7 @@
       :response (response-to-json response)})))
 
 (defn list-events
-  ([] (create-event {}))
+  ([] (list-events {}))
   ([query-params]
    (let [{:keys [db-spec test-user-id]} fixtures/test-env
          app (fn [req] ((swift-ticketing-app db-spec) req))

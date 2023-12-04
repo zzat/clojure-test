@@ -31,6 +31,8 @@
         (handlers/post-payment-handler db-spec (:booking-id route-params)))
       (POST "/booking/:booking-id/cancel" {:keys [cookies route-params]}
         (handlers/cancel-booking-handler db-spec (:booking-id route-params)))
+      (GET "/booking/:booking-id/ticket" {:keys [cookies route-params]}
+        (handlers/get-tickets-by-booking-id-handler db-spec (:booking-id route-params)))
       (route/not-found "Not Found"))))
 
 (defn swift-ticketing-app [db-spec]

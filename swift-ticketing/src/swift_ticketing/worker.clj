@@ -41,9 +41,12 @@
                                   :data {:booking-id booking-id}})))
 
 (defn- select-unbooked-tickets-with-db-lock [tx ticket-ids ticket-type-id ticket-quantity]
-  (let [selected-rows (jdbc/execute! tx (ticket/lock-unbooked-tickets ticket-ids ticket-type-id ticket-quantity))
+  (let [selected-rows (jdbc/execute!
+                       tx
+                       (ticket/lock-unbooked-tickets ticket-ids ticket-type-id ticket-quantity))
         selected-ticket-ids (map #(:ticket/ticket_id %) selected-rows)
-        reservation-timelimit-seconds (:ticket_type/reservation_timelimit_seconds (first selected-rows))]
+        reservation-timelimit-seconds (:ticket_type/reservation_timelimit_seconds
+                                       (first selected-rows))]
     {:locked-ticket-ids selected-ticket-ids
      :reservation-timelimit-seconds reservation-timelimit-seconds}))
 

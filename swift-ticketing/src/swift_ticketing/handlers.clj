@@ -117,3 +117,10 @@
 
 (defn get-tickets-handler [db-spec ticket-type-id]
   (validate-req ticket-type-id ::specs/ticket-type-id #(get-tickets db-spec ticket-type-id)))
+
+(defn- get-tickets-by-booking-id [db-spec booking-id]
+  (let [tickets (jdbc/execute! db-spec (ticket/get-tickets-by-booking-id booking-id) {:builder-fn rs/as-unqualified-maps})]
+    (respond-200 tickets)))
+
+(defn get-tickets-by-booking-id-handler [db-spec booking-id]
+  (validate-req booking-id ::specs/booking-id #(get-tickets-by-booking-id db-spec booking-id)))

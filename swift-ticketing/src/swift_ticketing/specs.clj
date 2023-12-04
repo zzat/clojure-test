@@ -46,7 +46,6 @@
                          (and ::ticket_type ::seat_type ::description ::seats ::reservation_limit_in_seconds ::price))]))
 
 (s/def ::reserve-tickets-params
-  (or (s/keys :req-un [::quantity ::ticket_type_id]) 
-        (s/keys :req-un [::ticket_ids])))
+  (s/keys :req-un [(or (and ::quantity ::ticket_type_id) ::ticket_ids)]))
 
 ; (s/valid? ::create-event-params {:name "a"})
