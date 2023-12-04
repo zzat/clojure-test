@@ -33,44 +33,65 @@
                   (if ok
                     (do
                       (accountant/navigate! "/event"))
-                    (js/alert "Couldn't create the Event")))]
+                    (js/alert "Couldn't create the Event")))
+        row (fn [label input-id component]
+              [:div {:class "sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6"}
+               [:label {:for "event-name"
+                        :class "block text-sm font-medium leading-6 text-gray-900 sm:pt-1.5"}
+                label]
+               [:div {:class "mt-2 sm:col-span-2 sm:mt-0"}
+                [:div {:class "flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md"}]
+                component]])
+        input-class "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:max-w-xs sm:text-sm sm:leading-6"]
     (fn []
-      [:div
-       [:h2 "Enter Event Details"]
+      [:div.mt-4
+       [:h2 {:class "text-base font-semibold leading-7 text-gray-900"}
+        "Enter Event Details"]
        [:form
-        {:on-submit
+        {:class "space-y-12 sm:space-y-16"
+         :on-submit
          (fn [e]
            (post-event "http://127.0.0.1:9090/event" handler @event-state)
            (.preventDefault e))}
-        [:label {:for "event-name"} "Event Name"]
-        [:input
-         {:type "text"
-          :id "event-name"
-          :value (:name @event-state)
-          :on-change #(swap! event-state assoc :name (-> % .-target .-value))}]
 
-        [:label {:for "event-description"} "Description"]
-        [:input
-         {:type "text"
-          :id "event-description"
-          :value (:description @event-state)
-          :on-change #(swap! event-state assoc :description (-> % .-target .-value))}]
+        [:div {:class "mt-10 space-y-8 border-b border-gray-900/10 pb-12 sm:space-y-0 sm:divide-y sm:divide-gray-900/10 sm:border-t sm:pb-0"}
+         (row "Event Name"
+              "event-name"
+              [:input
+               {:type "text"
+                :class input-class
+                :id "event-name"
+                :value (:name @event-state)
+                :on-change #(swap! event-state assoc :name (-> % .-target .-value))}])
+         (row "Description"
+              "event-description"
+              [:input
+               {:type "text"
+                :class input-class
+                :id "event-description"
+                :value (:description @event-state)
+                :on-change #(swap! event-state assoc :description (-> % .-target .-value))}])
 
-        [:label {:for "event-date"} "Event Date"]
-        [:input
-         {:type "date"
-          :id "event-date"
-          :value (:date @event-state)
-          :on-change #(swap! event-state assoc :date (-> % .-target .-value))}]
+         (row "Event Date"
+              "event-date"
+              [:input
+               {:type "date"
+                :class input-class
+                :id "event-date"
+                :value (:date @event-state)
+                :on-change #(swap! event-state assoc :date (-> % .-target .-value))}])
 
-        [:label {:for "event-location"} "Event Location"]
-        [:input
-         {:type "text"
-          :id "event-location"
-          :value (:venue @event-state)
-          :on-change #(swap! event-state assoc :venue (-> % .-target .-value))}]
+         (row "Event Location"
+              "event-location"
+              [:input
+               {:type "text"
+                :class input-class
+                :id "event-location"
+                :value (:venue @event-state)
+                :on-change #(swap! event-state assoc :venue (-> % .-target .-value))}])
 
-        [:button {:type "submit" :class button-class} "Submit"]]])))
+         [:div {:class "py-6 flex items-center justify-end gap-x-6"}
+          [:button {:type "submit" :class button-class} "Submit"]]]]])))
 
 (defn get-events [url handler]
   (ajax/ajax-request
@@ -83,7 +104,7 @@
 (defn event-card [event]
   [:a {:href "#" :class "group" :on-click (fn [] (accountant/navigate! (str "/event/" (:event-id event))))}
    [:div {:class "aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg sm:aspect-h-3 sm:aspect-w-2"}
-    [:img {:src "https://images.pexels.com/photos/976866/pexels-photo-976866.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" :class "h-full w-full object-cover object-center group-hover:opacity-75" :alt "Product"}]]
+    [:img {:src "https://images.pexels.com/photos/976866/pexels-photo-976866.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" :class "h-full w-full object-cover object-center group-hover:opacity-75" :alt "Event"}]]
    [:div {:class "mt-4 flex items-center justify-between text-base font-medium text-gray-900"}
     [:h3 (:event-name event)]
     [:p (:event-date event)]]
@@ -224,4 +245,3 @@
                         (if @loading
                           [:div "Loading..."]
                           [ticket-info @event booking-id]))})))
-

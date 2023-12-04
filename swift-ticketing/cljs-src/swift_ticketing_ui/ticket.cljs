@@ -98,7 +98,7 @@
       [:div {:class "mx-auto max-w-2xl px-4 py-16 sm:px-6 lg:px-8 lg:max-w-7xl"}
        [:div {:class ""}
         [:div {:class "stage text-center rounded-t-[50%] border-t-8 border-lime-100 bg-gradient-to-b from-lime-50	to-transparent py-16 text-slate-400"} "↑ Event this way ↑"]
-        [:div {:class "seats columns-8 gap-8"}
+        [:div {:class "seats grid grid-cols-8 gap-8"}
          (for [seat seats]
            (let [seat-bg (if (contains? @selected-seats-set (:ticket-id seat)) "bg-lime-500 border-lime-600 text-lime-800" "bg-sky-50 border-sky-100 text-cyan-700")
                  seat-class (str "py-4 px-2 text-center font-bold cursor-pointer transition-all duration-300 ease-in border-4 rounded-t-[50%] " seat-bg)]
@@ -108,8 +108,9 @@
                                        (swap! selected-seats-set disj (:ticket-id seat))
                                        (swap! selected-seats-set conj (:ticket-id seat))))}
               (:ticket-name seat)]))]]
-       [:div {:class "mt-8 flex flex-row-reverse"}
+       [:div {:class "fixed bottom-0 left-0 w-full p-4 flex flex-row-reverse"}
         [:button {:class button-class
+                  :disabled (empty? @selected-seats-set)
                   :on-click #(post-booking
                               (str "http://127.0.0.1:9090/event/" event-id "/booking")
                               booking-handler
