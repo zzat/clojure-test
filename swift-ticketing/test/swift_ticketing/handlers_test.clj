@@ -5,7 +5,7 @@
             [clojure.data.json :as json]
             [next.jdbc.result-set :as rs]
             [clojure.set :as s]
-            [clojure.walk :refer [keywordize-keys]]
+            [clojure.walk :refer [keywordize-keys stringify-keys]]
             [swift-ticketing.app :refer [swift-ticketing-app]]
             [swift-ticketing.fixtures :as fixtures]
             [swift-ticketing.factory :as factory]
@@ -110,50 +110,48 @@
               actual (-> response
                          keywordize-keys)]
           (is (= status 200))
-          (is (= actual expected))
-          )
+          (is (= actual expected)))
         nil))))
+
+(defn create-ticket-test* [event-id ticket-request-fn]
+  (testing "with valid request"
+    (let [{:keys [request response status]} (client/create-tickets event-id (ticket-request-fn))
+          ticket-type-id (get response "ticket-type-id")
+          created-tickets (jdbc/execute! db-spec (ticket/get-unbooked-tickets ticket-type-id) {:builder-fn rs/as-unqualified-maps})
+          tickets (get response "tickets")
+          get-ticket-ids (fn [t] (set (map #(get % "ticket_id") t)))
+          ticket-ids (get-ticket-ids tickets)
+          created-ticket-ids (get-ticket-ids created-tickets)]
+      (is (= (:status response) 201))
+      (is (contains? response "ticket_type_id"))
+      (is (contains? response "tickets"))
+      (is (every? #(contains? % "ticket-id") tickets))
+      (is (= (count created-tickets) (count tickets)))
+      (is (= created-ticket-ids ticket-ids))
+
+      (testing "with missing keys in request body"
+        (let [ticket-req (ticket-request-fn)]
+          (doseq [key (keys ticket-req)]
+            (let [ticket-req* (dissoc ticket-req key)
+                  {:keys [request response status]} (client/create-tickets event-id ticket-req*)]
+              (is (= status 400)
+                  (str "Request without '" key "' should return 400")))))))))
 
 (deftest create-ticket-test
   (let [{:keys [db-spec test-user-id]} fixtures/test-env
-        app (fn [req] ((swift-ticketing-app db-spec) req))]
-
-      (testing "Creating Ticket (General)"
-        (testing "with valid request"
-          (let [event-id (java.util.UUID/randomUUID)]
-            (db-event/insert-event db-spec
-                                   test-user-id
-                                   event-id
-                                   (keywordize-keys (factory/event-request)))
-
-            (let [request (factory/ticket-request event-id)
-                  {:keys [request response status]} (client/create-general-tickets event-id)
-                  ticket-type-id (get response "ticket-type-id")
-                  created-tickets (jdbc/execute! db-spec (ticket/get-unbooked-tickets ticket-type-id) {:builder-fn rs/as-unqualified-maps})
-                  tickets (get response "tickets")
-                  get-ticket-ids (fn [t] (set (map #(get % "ticket_id") t)))
-                  ticket-ids (get-ticket-ids tickets)
-                  created-ticket-ids (get-ticket-ids created-tickets)]
-              (is (= (:status response) 201))
-              (is (contains? response "ticket_type_id"))
-              (is (contains? response "tickets"))
-              (is (every? #(contains? % "ticket-id") tickets))
-              (is (= (count created-tickets) (count tickets)))
-              (is (= created-ticket-ids ticket-ids))
-
-              (testing "with missing keys in request body"
-                (let [ticket-req (factory/ticket-request event-id)]
-                  (doseq [key (keys event)]
-                    (let [request (dissoc event key)
-                          response (-> (mock/request :post (str "/event/" event-id "/ticket"))
-                                       (mock/json-body request)
-                                       (mock/cookie "uid" test-user-id)
-                                       app)]
-                      (is (= (:status response) 400)
-                          (str "Request without '" key "' should return 400"))))))))))
-    ))
+        app (fn [req] ((swift-ticketing-app db-spec) req))
+        event-id (java.util.UUID/randomUUID)]
+    (db-event/insert-event
+     db-spec
+     test-user-id
+     event-id
+     (keywordize-keys (factory/event-request)))
+    (testing "Creating ticket (General)"
+      (create-ticket-test* event-id factory/general-ticket-request))
+    (testing "Creating ticket (Seated)"
+      (create-ticket-test* event-id factory/seated-ticket-request))))
 
 ; (run-tests)
 (run-test create-event-test)
-; (run-test list-events-test)
-; (run-test get-event-test)
+(run-test list-events-test)
+(run-test get-event-test)
