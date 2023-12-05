@@ -10,11 +10,13 @@
   (-> (mock/request :post url)
       (mock/json-body body)))
 
-(defn- get-request [url query-params]
+(defn- get-request 
+  ([url] (get-request url nil))
+  ([url query-params]
   (->> (mock/request :get url)
-       #(if (nil? query-params)
-          (identity %)
-          (mock/query-string % query-params))))
+       (fn [r](if (nil? query-params)
+          (identity r)
+          (mock/query-string r query-params))))))
 
 (defn- response-to-json [response]
   (-> response

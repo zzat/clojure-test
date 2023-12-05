@@ -24,13 +24,10 @@
       (testing "with valid request"
         (let [{:keys [request status response]} (client/create-event)
               event-id (get response "event_id")
-              to-db-event #(s/rename-keys % {"name" "event_name"
-                                             "description" "event_description"
-                                             "date" "event_date"})
               created-event (first (db-event/get-event db-spec event-id))]
           (is (= status 201))
           (is ((comp not nil?) event-id) "Should return an event_id")
-          (is (utils/submap? (to-db-event request) created-event)
+          (is (= request (utils/db-event-to-event-request created-event))
               "Created data should match the data in request")))
 
       (testing "with missing params in request"
@@ -105,18 +102,17 @@
                 (is (empty? (:response non-existent-venue-resp)))))))))))
 
 (deftest get-event-test
-  (let [{:keys [db-spec]} fixtures/test-env
-        app (fn [req] ((swift-ticketing-app db-spec) req))]
-    (testing "Get event with tickets info"
-      (let [event-id (java.util.UUID/randomUUID)
-            expected [(factory/event-with-tickets event-id)]]
-        (with-redefs [db-event/get-event-with-tickets (constantly expected)]
-          (let [{:keys [response status]} (client/get-event event-id)
-                actual (-> response
-                           keywordize-keys)]
-
-            (is (= (:status response) 200))
-            (is (= actual expected))))))))
+  (testing "Get event with tickets info"
+    (let [event-id (java.util.UUID/randomUUID)
+          expected [(factory/event-with-tickets event-id)]]
+      (with-redefs [db-event/get-event-with-tickets (constantly expected)]
+        (let [{:keys [response status]} (client/get-event event-id)
+              actual (-> response
+                         keywordize-keys)]
+          (is (= status 200))
+          (is (= actual expected))
+          )
+        nil))))
 
 (deftest create-ticket-test
   (let [{:keys [db-spec test-user-id]} fixtures/test-env

@@ -51,7 +51,7 @@
      :ticket_description (mk-ticket-description event-id)
      :ticket_price (rand-int 10000)}))
 
-(defn general-ticket-request [event-id]
+(defn general-ticket-request []
   (let [random-id (rand-int 10000)]
     {"ticket_type" (mk-ticket-type random-id)
      "description" (mk-ticket-description random-id)
@@ -59,7 +59,7 @@
      "quantity" (inc (rand-int 1000))
      "price" (inc (rand-int 2000))}))
 
-(defn seated-ticket-request [event-id]
+(defn seated-ticket-request []
   (let [random-id (rand-int 10000)
         seat (fn [x] {"name" (str x)})]
     {"ticket_type" (mk-ticket-type random-id)
