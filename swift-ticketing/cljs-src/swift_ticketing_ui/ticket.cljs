@@ -2,7 +2,7 @@
   (:require
    [ajax.core :as ajax]
    [reagent.core :as r]
-   [secretary.core :as secretary]
+   [swift-ticketing-ui.config :refer [API_URL]]
    [accountant.core :as accountant]
    [camel-snake-kebab.extras :as cske]
    [camel-snake-kebab.core :as csk]))
@@ -36,7 +36,7 @@
        [:form
         {:on-submit
          (fn [e]
-           (post-ticket (str "http://127.0.0.1:9090/event/" event-id "/ticket") handler @ticket-state)
+           (post-ticket (str API_URL "/event/" event-id "/ticket") handler @ticket-state)
            (.preventDefault e))}
         [:label {:for "ticket-name"} "Ticket Name"]
         [:input
@@ -112,7 +112,7 @@
         [:button {:class button-class
                   :disabled (empty? @selected-seats-set)
                   :on-click #(post-booking
-                              (str "http://127.0.0.1:9090/event/" event-id "/booking")
+                              (str API_URL "/event/" event-id "/booking")
                               booking-handler
                               @selected-seats-set)} "Buy Tickets"]]])))
 
@@ -140,7 +140,7 @@
                             ; (accountant/navigate! "/event")
                             )
                           (reset! loading false)))]
-          (get-tickets (str "http://127.0.0.1:9090/ticket") ticket-type-id handler)))
+          (get-tickets (str API_URL "/ticket") ticket-type-id handler)))
       :reagent-render (fn []
                         (if @loading
                           [:div "Loading..."]

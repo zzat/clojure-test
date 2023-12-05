@@ -2,7 +2,8 @@
   (:require
    [ajax.core :as ajax]
    [reagent.core :as r]
-   [secretary.core :as secretary]
+   [swift-ticketing-ui.config :refer [API_URL]]
+   [clojure.string :as str]
    [accountant.core :as accountant]
    [camel-snake-kebab.extras :as cske]
    [camel-snake-kebab.core :as csk]))
@@ -51,7 +52,7 @@
         {:class "space-y-12 sm:space-y-16"
          :on-submit
          (fn [e]
-           (post-event "http://127.0.0.1:9090/event" handler @event-state)
+           (post-event (str API_URL "/event") handler @event-state)
            (.preventDefault e))}
 
         [:div {:class "mt-10 space-y-8 border-b border-gray-900/10 pb-12 sm:space-y-0 sm:divide-y sm:divide-gray-900/10 sm:border-t sm:pb-0"}
@@ -107,7 +108,8 @@
     [:img {:src "https://images.pexels.com/photos/976866/pexels-photo-976866.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" :class "h-full w-full object-cover object-center group-hover:opacity-75" :alt "Event"}]]
    [:div {:class "mt-4 flex items-center justify-between text-base font-medium text-gray-900"}
     [:h3 (:event-name event)]
-    [:p (:event-date event)]]
+    [:p (when (:event-date event)
+          (subs (:event-date event) 0 (str/index-of (:event-date event) "T")))]]
    [:p {:class "mt-1 text-sm italic text-gray-500"} (:event-description event)]])
 
 (defn events-list [events]
@@ -138,7 +140,7 @@
                                     (cske/transform-keys csk/->kebab-case-keyword response)))
                           (do (js/console.log "Response else: ", response)
                               (reset! loading false))))]
-          (get-events "http://127.0.0.1:9090/event" handler)))
+          (get-events (str API_URL "/event") handler)))
       :reagent-render (fn []
                         (if @loading
                           [:div "Loading..."]
@@ -180,7 +182,7 @@
                                      "focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm")
         general-ticket-booking-button [:button {:class button-class
                                                 :on-click #(post-booking
-                                                            (str "http://127.0.0.1:9090/event/" (:event-id ticket) "/booking")
+                                                            (str API_URL "/event/" (:event-id ticket) "/booking")
                                                             booking-handler
                                                             @selected-quantity
                                                             (:ticket-type-id ticket))}
@@ -216,7 +218,7 @@
 (defn ticket-info [tickets booking-id]
   [:div.grid-cols-2
    [:div {:class "mx-auto max-w-2xl px-4 pb-24 pt-16 sm:px-6 lg:max-w-7xl lg:px-8"}
-    [:button {:class "float-right rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+    [:button {:class "hidden float-right rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
               :on-click #(accountant/navigate! (str "/event/" (:event-id (first tickets)) "/ticket/create"))} "Create Tickets"]
     [:h1 {:class "text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl"} (:event-name (first tickets))]
     [:p {:class "py-4 text-gray-500"} (:event-description (first tickets))]
@@ -240,7 +242,7 @@
                             (reset! event
                                     (cske/transform-keys csk/->kebab-case-keyword response)))
                           (reset! loading false)))]
-          (get-event (str "http://127.0.0.1:9090/event/" event-id) handler)))
+          (get-event (str API_URL "/event/" event-id) handler)))
       :reagent-render (fn []
                         (if @loading
                           [:div "Loading..."]
