@@ -20,7 +20,8 @@
                  [metosin/compojure-api "2.0.0-alpha31"]
                  [org.clojure/data.json "2.4.0"]
                  [com.taoensso/carmine "3.3.2"]
-                 [ragtime "0.8.0"]]
+                 [ragtime "0.8.0"]
+                 [com.stuartsierra/component "1.1.0"]]
   :main ^:skip-aot swift-ticketing.core
   :target-path "target/%s"
   :plugins [[lein-ring "0.12.6"]]

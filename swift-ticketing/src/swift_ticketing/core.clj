@@ -1,36 +1,30 @@
 (ns swift-ticketing.core
   (:require [swift-ticketing.config :as config]
-            [next.jdbc :as jdbc]
-            [next.jdbc.connection :as connection]
-            [ring.adapter.jetty :refer [run-jetty]]
-            [swift-ticketing.app :as app]
-            [swift-ticketing.worker :as worker]
-            [taoensso.carmine :as car])
-  (:import (com.zaxxer.hikari HikariDataSource))
+            [taoensso.carmine :as car]
+            [com.stuartsierra.component :as component]
+            [swift-ticketing.components.db :refer [new-database]]
+            [swift-ticketing.components.http-server :refer
+             [new-http-server]]
+            [swift-ticketing.components.worker :refer [new-worker]])
   (:gen-class))
-
-(defn create-connection-pool ^HikariDataSource [database-config]
-  (connection/->pool com.zaxxer.hikari.HikariDataSource
-                     {:dbtype (:dbtype database-config)
-                      :dbname (:dbname database-config)
-                      :username (:username database-config)
-                      :password (:password database-config)
-                      :host (:host database-config)
-                      :port (:port database-config)
-                      :schema (:schema database-config)}))
 
 (defonce redis-conn-pool (car/connection-pool {}))
 
+(defn swift-ticketing-system [config]
+  (let [locking-strategy (:locking-strategy config)
+        redis-opts (when (= "redis" locking-strategy)
+                     {:pool redis-conn-pool
+                      :spec (:redis config)})]
+    (component/system-map
+     :database (new-database (:database config))
+     :app (component/using
+           (new-http-server (get-in config [:server :port]))
+           [:database])
+     :worker (component/using
+              (new-worker 5 redis-opts)
+              [:database]))))
+
 (defn -main
   [& args]
-  (let [config (config/read-app-config)
-        redis-config {:pool redis-conn-pool
-                      :spec (:redis config)}
-        locking-strategy (:locking-strategy config)]
-    (with-open [^HikariDataSource ds (create-connection-pool (:database config))]
-      (.close (jdbc/get-connection ds))
-      (let [redis-opts (when (= "redis" locking-strategy)
-                         redis-config)]
-        (worker/workers ds redis-opts 5))
-      (run-jetty (app/swift-ticketing-app ds) {:port (get-in config [:server :port])
-                                               :join? true}))))
+  (let [config (config/read-app-config)]
+    (component/start (swift-ticketing-system config))))

@@ -9,3 +9,5 @@
 
 (defn read-app-config [] (read-config "config.edn"))
 (defn read-test-config [] (read-config "config.test.edn"))
+
+(defrecord DBConfig [dbtype dbname username password host port schema])
