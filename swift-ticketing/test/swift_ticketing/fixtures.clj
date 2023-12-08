@@ -18,3 +18,13 @@
       (alter-var-root #'test-env #(assoc % :test-user-id test-user-id)))
     (tests)
     (migrations/rollback-with db-config)))
+
+(defn truncate-tables [db-spec]
+  (let [tables [:ticket :ticket_type :booking :event]
+        truncate-fn #(sql/format {:truncate [% [:raw "cascade"]]})]
+    (doseq [table tables]
+      (jdbc/execute! db-spec (truncate-fn table)))))
+
+(defn clear-tables [tests]
+  (truncate-tables (:db-spec test-env))
+  (tests))
