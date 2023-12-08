@@ -29,6 +29,7 @@
 
 (defn- get-events [db-spec venue from to]
   (let [events (event/get-events db-spec venue from to)]
+    (println events)
     (respond-200 events)))
 
 (defn get-events-handler [db-spec venue from to]
@@ -59,8 +60,8 @@
         ticket-type-id (java.util.UUID/randomUUID)
         tickets
         (map (fn [m] (assoc m :ticket-id (java.util.UUID/randomUUID))) tickets-map)]
-    (jdbc/execute! db-spec (ticket/insert-ticket-type event-id ticket-type-id ticket-req))
-    (jdbc/execute! db-spec (ticket/insert-tickets ticket-type-id tickets price))
+    (ticket/insert-ticket-type db-spec event-id ticket-type-id ticket-req)
+    (ticket/insert-tickets db-spec ticket-type-id tickets price)
     (respond-201
      {"ticket_type_id" ticket-type-id
       "tickets" tickets})))
@@ -75,7 +76,7 @@
         req-ticket-ids (:ticket_ids booking-req)
         ticket-ids (when-not (nil? req-ticket-ids)
                      (map #(java.util.UUID/fromString %) req-ticket-ids))]
-    (jdbc/execute! db-spec (booking/insert-booking uid booking-id))
+    (booking/insert-booking db-spec uid booking-id)
     (worker/add-reserve-ticket-request-to-queue {:booking-id booking-id
                                                  :ticket-type-id (:ticket_type_id booking-req)
                                                  :ticket-ids ticket-ids
@@ -105,21 +106,23 @@
   (validate-req booking-id ::specs/booking-id #(cancel-booking db-spec booking-id)))
 
 (defn- get-booking-status [db-spec uid booking-id]
-  (let [result (:booking/booking_status (jdbc/execute-one! db-spec (booking/get-booking-status uid booking-id)))]
+  (let [result (-> (booking/get-booking-status db-spec uid booking-id)
+                   first
+                   :booking/booking_status)]
     (respond-200 {"booking_status" result})))
 
 (defn get-booking-status-handler [db-spec uid booking-id]
   (validate-req booking-id ::specs/booking-id #(get-booking-status db-spec uid booking-id)))
 
 (defn- get-tickets [db-spec ticket-type-id]
-  (let [tickets (jdbc/execute! db-spec (ticket/get-unbooked-tickets ticket-type-id) {:builder-fn rs/as-unqualified-maps})]
+  (let [tickets (ticket/get-unbooked-tickets db-spec ticket-type-id)]
     (respond-200 tickets)))
 
 (defn get-tickets-handler [db-spec ticket-type-id]
   (validate-req ticket-type-id ::specs/ticket-type-id #(get-tickets db-spec ticket-type-id)))
 
 (defn- get-tickets-by-booking-id [db-spec booking-id]
-  (let [tickets (jdbc/execute! db-spec (ticket/get-tickets-by-booking-id booking-id) {:builder-fn rs/as-unqualified-maps})]
+  (let [tickets (ticket/get-tickets-by-booking-id db-spec booking-id)]
     (respond-200 tickets)))
 
 (defn get-tickets-by-booking-id-handler [db-spec booking-id]
