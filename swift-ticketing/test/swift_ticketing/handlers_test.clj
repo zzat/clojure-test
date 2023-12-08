@@ -15,7 +15,8 @@
             [swift-ticketing.client :as client]
             [swift-ticketing.specs :as specs]))
 
-(use-fixtures :each fixtures/run-migrations)
+(use-fixtures :once fixtures/setup-test-system)
+(use-fixtures :each fixtures/clear-tables)
 
 (deftest create-event-test
   (let [{:keys [db-spec]} fixtures/test-env]
@@ -116,6 +117,7 @@
 (defn create-ticket-test* [event-id ticket-request-fn]
   (testing "with valid request"
     (let [{:keys [request response status]} (client/create-tickets event-id (ticket-request-fn))
+          {:keys [db-spec test-user-id]} fixtures/test-env
           ticket-type-id (get response "ticket-type-id")
           created-tickets (jdbc/execute! db-spec (ticket/get-unbooked-tickets ticket-type-id) {:builder-fn rs/as-unqualified-maps})
           tickets (get response "tickets")
