@@ -6,23 +6,16 @@
   component/Lifecycle
 
   (start [component]
-    (println ";; Spawn worker army")
-    (let [connection (:connection database)
-          mk-worker-thread (fn [_]
-                             (Thread.
-                              #(w/process-ticket-requests
-                                connection redis-opts)))
-          worker-threads (map mk-worker-thread
-                              (range total-workers))]
-      (doseq [worker-thread worker-threads]
-        (.start worker-thread))
-      (assoc component :workers worker-threads)))
+    (println ";; Spawn workers")
+    (let [connection (:connection database)]
+      (dotimes [i total-workers]
+        (w/process-ticket-requests i connection redis-opts)))
+    component)
 
   (stop [component]
-    (println ";; Slay workers")
-    (dotimes [worker-thread (:workers component)]
-      (.stop worker-thread))
-    (assoc component :workers nil)))
+    (println ";; Stop workers")
+    ; (async/close! w/ticket-queue)
+    component))
 
 (defn new-worker [total-workers redis-opts]
   (map->Worker {:total-workers total-workers

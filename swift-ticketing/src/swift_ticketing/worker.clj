@@ -119,7 +119,7 @@
       (jdbc/execute! tx (ticket/cancel-tickets selected-ticket-ids))
       (jdbc/execute! tx (booking/update-booking-status booking-id booking/CANCELED)))))
 
-(defn process-ticket-requests [db-spec redis-opts]
+(defn process-ticket-requests [worker-id db-spec redis-opts]
   (async/go
     (while true
       (try
@@ -133,9 +133,9 @@
             (= event-type cancel-event) (handle-cancel-event db-spec request)
             :else (println "Worker: Unknown event")))
         (catch Exception e
-          (println (str "Exception in Worker: Thread #" (.getName (Thread/currentThread)) " :" e)))))))
+          (println (str "Exception in Worker: " worker-id " :" e)))))))
 
 ;; redis-opts is not nil when locking-strategy chosen is redis
-(defn workers [db-spec redis-opts total-workers]
-  (dotimes [i total-workers]
-    (.start (Thread. #(process-ticket-requests i db-spec redis-opts)))))
+; (defn workers [db-spec redis-opts total-workers]
+;   (dotimes [i total-workers]
+;     (.start (Thread. #(process-ticket-requests i db-spec redis-opts)))))
