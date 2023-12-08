@@ -18,7 +18,8 @@
     (component/system-map
      :database (new-database (:database config))
      :app (component/using
-           (new-http-server (get-in config [:server :port]))
+           (new-http-server (get-in config [:server :port])
+                            (get-in config [:server :join?]))
            [:database])
      :worker (component/using
               (new-worker 5 redis-opts)
