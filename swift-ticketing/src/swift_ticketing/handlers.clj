@@ -1,6 +1,7 @@
 (ns swift-ticketing.handlers
   (:require
    [clojure.spec.alpha :as s]
+   [clojure.set :as set]
    [swift-ticketing.db.event :as event]
    [swift-ticketing.specs :as specs]
    [clojure.walk :refer [keywordize-keys]]
@@ -87,7 +88,7 @@
                            (create-tickets db-spec uid event-id body)]
                        (respond-201
                         {"ticket_type_id" ticket-type-id
-                         "tickets" tickets})))]
+                         "tickets" (map #(set/rename-keys % {:ticket-id "ticket_id"}) tickets)})))]
     (and
      (s/valid? ::specs/event-id event-id)
      (validate-req body ::specs/create-tickets-params on-success))))
