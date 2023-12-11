@@ -75,7 +75,6 @@
         (map (fn [m] (assoc m :ticket-id (java.util.UUID/randomUUID))) tickets-map)]
     (ticket/insert-ticket-type db-spec event-id ticket-type-id ticket-req)
     (ticket/insert-tickets db-spec ticket-type-id tickets price)
-
     {:ticket-type-id ticket-type-id
      :tickets tickets}))
 
