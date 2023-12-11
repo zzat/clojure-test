@@ -64,10 +64,17 @@
         seat (fn [x] {"name" (str x)})]
     {"ticket_type" (mk-ticket-type random-id)
      "description" (mk-ticket-description random-id)
-     "seat_type" "General"
+     "seat_type" "Named"
      "reservation_limit_in_seconds" (+ 50 (rand-int 200))
      "seats" (for [x (range (inc (rand-int 20)))] (seat x))
      "price" (inc (rand-int 2000))}))
+
+(defn mk-reserve-general-ticket-request [quantity ticket-type-id]
+  {"quantity" quantity
+   "ticket_type_id" ticket-type-id})
+
+(defn mk-reserve-seated-ticket-request [ticket-ids]
+  {"ticket_ids" ticket-ids})
 
 (defn add-user-table-entry [db-spec]
   (let [user-id (java.util.UUID/randomUUID)

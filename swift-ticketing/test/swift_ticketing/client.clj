@@ -10,13 +10,13 @@
   (-> (mock/request :post url)
       (mock/json-body body)))
 
-(defn- get-request 
+(defn- get-request
   ([url] (get-request url nil))
   ([url query-params]
-  (->> (mock/request :get url)
-       (fn [r](if (nil? query-params)
-          (identity r)
-          (mock/query-string r query-params))))))
+   (-> (mock/request :get url)
+       ((fn [r] (if (nil? query-params)
+                  (identity r)
+                  (mock/query-string r query-params)))))))
 
 (defn- response-to-json [response]
   (-> response
@@ -34,6 +34,17 @@
      {:request request
       :status (:status response)
       :response (response-to-json response)})))
+
+(defn reserve-general-ticket
+  [request]
+  (let [{:keys [db-spec test-user-id]} fixtures/test-env
+        app (fn [req] ((swift-ticketing-app db-spec) req))
+        response (-> (post-request "/event" request)
+                     (mock/cookie "uid" test-user-id)
+                     app)]
+    {:request request
+     :status (:status response)
+     :response (response-to-json response)}))
 
 (defn list-events
   ([] (list-events {}))
@@ -68,10 +79,10 @@
       :response (response-to-json response)})))
 
 (defn create-general-tickets
-  ([event-id] (create-tickets event-id (factory/general-ticket-request event-id))))
+  ([event-id] (create-tickets event-id (factory/general-ticket-request))))
 
 (defn create-seated-tickets
-  ([event-id] (create-tickets event-id (factory/seated-ticket-request event-id))))
+  ([event-id] (create-tickets event-id (factory/seated-ticket-request))))
 
 (defn reserve-ticket
   ([event-id request]

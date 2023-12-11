@@ -11,7 +11,9 @@
             [swift-ticketing.utils :as utils]
             [swift-ticketing.db.event :as db-event]
             [swift-ticketing.db.ticket :as ticket]
-            [swift-ticketing.client :as client]))
+            [swift-ticketing.client :as client]
+            [swift-ticketing.db.booking :as booking]
+            [swift-ticketing.db :as db]))
 
 (use-fixtures :each fixtures/clear-tables)
 
@@ -118,9 +120,12 @@
           ticket-type-id (get response "ticket_type_id")
           created-tickets (jdbc/execute! db-spec (ticket/get-unbooked-tickets ticket-type-id) {:builder-fn rs/as-unqualified-maps})
           tickets (get response "tickets")
-          get-ticket-ids (fn [t] (set (map #(get % "ticket_id") t)))
-          ticket-ids (get-ticket-ids tickets)
-          created-ticket-ids (get-ticket-ids created-tickets)]
+          get-ticket-ids (fn [k t] (set (map #(get % k) t)))
+          ticket-ids (get-ticket-ids "ticket_id" tickets)
+          created-ticket-ids (->> created-tickets
+                                  (get-ticket-ids :ticket_id)
+                                  (map str)
+                                  set)]
       (is (= status 201))
       (is (contains? response "ticket_type_id"))
       (is (contains? response "tickets"))
@@ -143,3 +148,21 @@
       (create-ticket-test* event-id factory/general-ticket-request))
     (testing "Creating ticket (Seated)"
       (create-ticket-test* event-id factory/seated-ticket-request))))
+
+(deftest book-general-ticket-test
+  (testing "Reserving ticket (General)"
+    (let [{:keys [db-spec test-user-id]} fixtures/test-env
+          event-id (-> (client/create-event)
+                       :response
+                       (get "event_id"))
+          created-tickets (-> (client/create-general-tickets event-id)
+                              :response)
+          {:keys [status response]} (->> (get created-tickets "ticket_type_id")
+                                         (factory/mk-reserve-general-ticket-request 1)
+                                         (client/reserve-ticket event-id))
+          booking-id (get response "booking_id")
+          booking-status (db/get-booking-status booking-id)]
+      (is (= status 201))
+      (is (some? booking-id))
+      (is (= booking/INPROCESS booking-status))
+      )))
