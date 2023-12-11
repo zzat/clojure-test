@@ -114,17 +114,17 @@
 (defn create-ticket-test* [event-id ticket-request-fn]
   (testing "with valid request"
     (let [{:keys [request response status]} (client/create-tickets event-id (ticket-request-fn))
-          {:keys [db-spec test-user-id]} fixtures/test-env
-          ticket-type-id (get response "ticket-type-id")
+          {:keys [db-spec]} fixtures/test-env
+          ticket-type-id (get response "ticket_type_id")
           created-tickets (jdbc/execute! db-spec (ticket/get-unbooked-tickets ticket-type-id) {:builder-fn rs/as-unqualified-maps})
           tickets (get response "tickets")
           get-ticket-ids (fn [t] (set (map #(get % "ticket_id") t)))
           ticket-ids (get-ticket-ids tickets)
           created-ticket-ids (get-ticket-ids created-tickets)]
-      (is (= (:status response) 201))
+      (is (= status 201))
       (is (contains? response "ticket_type_id"))
       (is (contains? response "tickets"))
-      (is (every? #(contains? % "ticket-id") tickets))
+      (is (every? #(contains? % "ticket_id") tickets))
       (is (= (count created-tickets) (count tickets)))
       (is (= created-ticket-ids ticket-ids))
 
@@ -137,14 +137,8 @@
                   (str "Request without '" key "' should return 400")))))))))
 
 (deftest create-ticket-test
-  (let [{:keys [db-spec test-user-id]} fixtures/test-env
-        app (fn [req] ((swift-ticketing-app db-spec) req))
-        event-id (java.util.UUID/randomUUID)]
-    (db-event/insert-event
-     db-spec
-     test-user-id
-     event-id
-     (keywordize-keys (factory/event-request)))
+  (let [{:keys [response]} (client/create-event)
+        event-id (get response "event_id")]
     (testing "Creating ticket (General)"
       (create-ticket-test* event-id factory/general-ticket-request))
     (testing "Creating ticket (Seated)"
