@@ -27,7 +27,7 @@
               created-event (first (db-event/get-event db-spec event-id))]
           (is (= status 201))
           (is ((comp not nil?) event-id) "Should return an event_id")
-          (is (= request (utils/db-event-to-event-request created-event))
+          (is (= (dissoc request "date") (utils/db-event-to-event-request created-event))
               "Created data should match the data in request")))
 
       (testing "with missing params in request"
@@ -151,18 +151,59 @@
 
 (deftest book-general-ticket-test
   (testing "Reserving ticket (General)"
-    (let [{:keys [db-spec test-user-id]} fixtures/test-env
-          event-id (-> (client/create-event)
+    (let [event-id (-> (client/create-event)
                        :response
                        (get "event_id"))
-          created-tickets (-> (client/create-general-tickets event-id)
-                              :response)
-          {:keys [status response]} (->> (get created-tickets "ticket_type_id")
+          tickets-response (-> (client/create-general-tickets event-id)
+                               :response)
+          ticket-type-id (get tickets-response "ticket_type_id")
+          {:keys [status response]} (->> ticket-type-id
                                          (factory/mk-reserve-general-ticket-request 1)
                                          (client/reserve-ticket event-id))
           booking-id (get response "booking_id")
-          booking-status (db/get-booking-status booking-id)]
+          booking-status (db/get-booking-status booking-id)
+          reserved-tickets (db/get-tickets-by-booking-id booking-id)]
       (is (= status 201))
       (is (some? booking-id))
       (is (= booking/INPROCESS booking-status))
-      )))
+      (is (every? #(= ticket/RESERVED (:ticket_status %)) reserved-tickets))
+
+      (testing "with missing keys in request body"
+        (let [ticket-type-id (java.util.UUID/randomUUID)
+              reserve-ticket-req (factory/mk-reserve-general-ticket-request 1 (str ticket-type-id))]
+          (doseq [key (keys reserve-ticket-req)]
+            (let [reserve-ticket-req* (dissoc reserve-ticket-req key)
+                  {:keys [status]}
+                  (client/reserve-ticket event-id reserve-ticket-req*)]
+              (is (= status 400)
+                  (str "Request without '" key "' should return 400")))))))))
+
+(deftest book-seated-ticket-test
+  (testing "Reserving ticket (Seated)"
+    (let [event-id (-> (client/create-event)
+                       :response
+                       (get "event_id"))
+          tickets (-> (client/create-general-tickets event-id)
+                      :response
+                      (get "tickets"))
+          selected-tickets (take (inc (rand-int (count tickets))) tickets)
+          {:keys [status response]} (->> (map #(get % "ticket_id") selected-tickets)
+                                         factory/mk-reserve-seated-ticket-request
+                                         (client/reserve-ticket event-id))
+          booking-id (get response "booking_id")
+          booking-status (db/get-booking-status booking-id)
+          reserved-tickets (db/get-tickets-by-booking-id booking-id)]
+      (is (= status 201))
+      (is (some? booking-id))
+      (is (= booking/INPROCESS booking-status))
+      (is (every? #(= ticket/RESERVED (:ticket_status %)) reserved-tickets))
+
+      (testing "with missing keys in request body"
+        (let [ticket-type-id (java.util.UUID/randomUUID)
+              reserve-ticket-req (factory/mk-reserve-general-ticket-request 1 (str ticket-type-id))]
+          (doseq [key (keys reserve-ticket-req)]
+            (let [reserve-ticket-req* (dissoc reserve-ticket-req key)
+                  {:keys [status]}
+                  (client/reserve-ticket event-id reserve-ticket-req*)]
+              (is (= status 400)
+                  (str "Request without '" key "' should return 400")))))))))
