@@ -42,6 +42,7 @@
         response (-> (post-request "/event" request)
                      (mock/cookie "uid" test-user-id)
                      app)]
+    (println response)
     {:request request
      :status (:status response)
      :response (response-to-json response)}))
@@ -99,7 +100,7 @@
   ([booking-id]
    (let [{:keys [db-spec test-user-id]} fixtures/test-env
          app (fn [req] ((swift-ticketing-app db-spec) req))
-         response (-> (post-request (str "/booking/" booking-id "/payment"))
+         response (-> (post-request (str "/booking/" booking-id "/payment") nil)
                       (mock/cookie "uid" test-user-id)
                       app)]
      {:path-params booking-id

@@ -12,8 +12,8 @@
             [swift-ticketing.db.event :as db-event]
             [swift-ticketing.db.ticket :as ticket]
             [swift-ticketing.client :as client]
-            [swift-ticketing.db.booking :as booking]
-            [swift-ticketing.db :as db]))
+            [swift-ticketing.db.query :as query]
+            [swift-ticketing.db.booking :as db-booking]))
 
 (use-fixtures :each fixtures/clear-tables)
 
@@ -161,11 +161,11 @@
                                          (factory/mk-reserve-general-ticket-request 1)
                                          (client/reserve-ticket event-id))
           booking-id (get response "booking_id")
-          booking-status (db/get-booking-status booking-id)
-          reserved-tickets (db/get-tickets-by-booking-id booking-id)]
+          booking-status (query/get-booking-status booking-id)
+          reserved-tickets (query/get-tickets-by-booking-id booking-id)]
       (is (= status 201))
       (is (some? booking-id))
-      (is (= booking/INPROCESS booking-status))
+      (is (= db-booking/INPROCESS booking-status))
       (is (every? #(= ticket/RESERVED (:ticket_status %)) reserved-tickets))
 
       (testing "with missing keys in request body"
@@ -191,11 +191,11 @@
                                          factory/mk-reserve-seated-ticket-request
                                          (client/reserve-ticket event-id))
           booking-id (get response "booking_id")
-          booking-status (db/get-booking-status booking-id)
-          reserved-tickets (db/get-tickets-by-booking-id booking-id)]
+          booking-status (query/get-booking-status booking-id)
+          reserved-tickets (query/get-tickets-by-booking-id booking-id)]
       (is (= status 201))
       (is (some? booking-id))
-      (is (= booking/INPROCESS booking-status))
+      (is (= db-booking/INPROCESS booking-status))
       (is (every? #(= ticket/RESERVED (:ticket_status %)) reserved-tickets))
 
       (testing "with missing keys in request body"
