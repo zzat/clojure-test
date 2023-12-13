@@ -207,3 +207,26 @@
                   (client/reserve-ticket event-id reserve-ticket-req*)]
               (is (= status 400)
                   (str "Request without '" key "' should return 400")))))))))
+
+(deftest make-payment-test
+  (testing "Payment"
+    (let [event-id (-> (client/create-event)
+                       :response
+                       (get "event_id"))
+          tickets (-> (client/create-general-tickets event-id)
+                      :response
+                      (get "tickets"))
+          booking-id (->> (map #(get % "ticket_id") tickets)
+                                  factory/mk-reserve-seated-ticket-request
+                                  (client/reserve-ticket event-id)
+                                  :response
+                                  (get "booking_id"))
+          {:keys [response status]} (client/make-payment booking-id)
+          booking-status (query/get-booking-status booking-id)
+          ]
+      (is (= status 200))
+      ;; wait for status to change
+      (Thread/sleep 2000)
+      (is (= (query/get-booking-status booking-id) db-booking/CONFIRMED)))))
+
+(run-test make-payment-test)
