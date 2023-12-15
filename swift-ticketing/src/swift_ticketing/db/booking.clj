@@ -1,6 +1,6 @@
 (ns swift-ticketing.db.booking
   (:require [honey.sql :as sql]
-            [swift-ticketing.db.query :refer [run-query!]]))
+            [swift-ticketing.db.query :refer [run-query! run-query-one!]]))
 
 (defonce INPROCESS "InProcess")
 (defonce CONFIRMED "Confirmed")
@@ -17,11 +17,14 @@
                           [:cast uid :uuid]
                           [:cast INPROCESS :booking_status]]]})))
 
-(defn get-booking-status [db-spec booking-id]
-  (run-query!
+(defn get-booking [db-spec booking-id]
+  (run-query-one!
    db-spec
-   (sql/format {:select [:booking_status] :from :booking
+   (sql/format {:select [:*] :from :booking
                 :where [[:= :booking_id [:cast booking-id :uuid]]]})))
+
+(defn get-booking-status [db-spec booking-id]
+  (:booking_status (get-booking db-spec booking-id)))
 
 (defn update-booking-status [db-spec booking-id booking-status]
   (run-query!

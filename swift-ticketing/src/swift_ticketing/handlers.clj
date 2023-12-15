@@ -106,10 +106,8 @@
   (validate-req booking-id ::specs/booking-id #(cancel-booking db-spec booking-id)))
 
 (defn- get-booking-status [db-spec booking-id]
-  (let [result (-> (booking/get-booking-status db-spec booking-id)
-                   first
-                   :booking/booking_status)]
-    (respond-200 {"booking_status" result})))
+  (respond-200 {"booking_status" 
+                (booking/get-booking-status db-spec booking-id)}))
 
 (defn get-booking-status-handler [db-spec booking-id]
   (validate-req booking-id ::specs/booking-id #(get-booking-status db-spec booking-id)))
