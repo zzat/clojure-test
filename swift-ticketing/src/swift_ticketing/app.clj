@@ -26,7 +26,7 @@
       (GET "/ticket" [ticket_type_id]
         (handlers/get-tickets-handler db-spec ticket_type_id))
       (GET "/booking/:booking-id/status" {:keys [cookies route-params]}
-        (handlers/get-booking-status-handler db-spec (get-uid cookies) (:booking-id route-params)))
+        (handlers/get-booking-status-handler db-spec (:booking-id route-params)))
       (POST "/booking/:booking-id/payment" {:keys [cookies route-params]}
         (handlers/post-payment-handler db-spec (:booking-id route-params)))
       (POST "/booking/:booking-id/cancel" {:keys [cookies route-params]}
