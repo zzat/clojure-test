@@ -1,8 +1,7 @@
 (ns swift-ticketing.db.event
   (:require [honey.sql :as sql]
             [swift-ticketing.db.query :refer [run-query!]]
-            [swift-ticketing.db.ticket :as ticket]
-            [next.jdbc :as jdbc])
+            [swift-ticketing.db.ticket :as ticket])
   (:import [java.time Instant]))
 
 (defn insert-event [db-spec uid event_id event-req]
@@ -17,14 +16,15 @@
                           [:cast uid :uuid]
                           (:venue event-req)]]})))
 
-(defn get-events [db-spec venue from to]
-  (run-query!
-   db-spec
-   (sql/format {:select [:event_id :event_name :event_description :event_date :venue] :from :event
-                :where [:and
-                        (if (nil? venue) [true] [:= :venue venue])
-                        (if (nil? from) [true] [:>= :event_date [:cast from :date]])
-                        (if (nil? to) [true] [:<= :event_date [:cast to :date]])]})))
+(defn get-events [db-spec filters]
+  (let [{:keys [venue from to]} filters]
+    (run-query!
+     db-spec
+     (sql/format {:select [:event_id :event_name :event_description :event_date :venue] :from :event
+                  :where [:and
+                          (if (nil? venue) [true] [:= :venue venue])
+                          (if (nil? from) [true] [:>= :event_date [:cast from :date]])
+                          (if (nil? to) [true] [:<= :event_date [:cast to :date]])]}))))
 
 (defn get-event [db-spec event-id]
   (run-query!

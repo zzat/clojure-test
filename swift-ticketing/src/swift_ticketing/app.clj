@@ -9,35 +9,32 @@
    [swift-ticketing.app :as app]))
 
 (defn init-routes [db-spec]
-  (let [get-uid (fn [cookies]
-                  (get-in cookies ["uid" :value]))]
-    (defroutes app-routes
-      (GET "/" [] "Hello World")
-      (GET "/event" [venue from to]
-        (handlers/get-events-handler db-spec venue from to))
-      (POST "/event" {:keys [body cookies]}
-        (handlers/create-event-handler db-spec (get-uid cookies) body))
-      (GET "/event/:event-id" {:keys [route-params]}
-        (handlers/get-event-handler db-spec (:event-id route-params)))
-      (POST "/event/:event-id/ticket" {:keys [body cookies route-params]}
-        (handlers/create-tickets-handler db-spec (get-uid cookies) (:event-id route-params) body))
-      (POST "/event/:event-id/booking" {:keys [body cookies route-params]}
-        (handlers/reserve-ticket-handler db-spec (get-uid cookies) (:event-id route-params) body))
-      (GET "/ticket" [ticket_type_id]
-        (handlers/get-tickets-handler db-spec ticket_type_id))
-      (GET "/booking/:booking-id/status" {:keys [cookies route-params]}
-        (handlers/get-booking-status-handler db-spec (:booking-id route-params)))
-      (POST "/booking/:booking-id/payment" {:keys [cookies route-params]}
-        (handlers/post-payment-handler db-spec (:booking-id route-params)))
-      (POST "/booking/:booking-id/cancel" {:keys [cookies route-params]}
-        (handlers/cancel-booking-handler db-spec (:booking-id route-params)))
-      (GET "/booking/:booking-id/ticket" {:keys [cookies route-params]}
-        (handlers/get-tickets-by-booking-id-handler db-spec (:booking-id route-params)))
-      (route/not-found "Not Found"))))
+  (defroutes app-routes
+    (GET "/event" request
+      (handlers/get-events-handler db-spec request))
+    (POST "/event" request
+      (handlers/create-event-handler db-spec request))
+    (GET "/event/:event-id" request
+      (handlers/get-event-handler db-spec request))
+    (POST "/event/:event-id/ticket" request
+      (handlers/create-tickets-handler db-spec request))
+    (POST "/event/:event-id/booking" request
+      (handlers/reserve-ticket-handler db-spec request))
+    (GET "/ticket" request
+      (handlers/get-tickets-handler db-spec request))
+    (GET "/booking/:booking-id/status" request
+      (handlers/get-booking-status-handler db-spec request))
+    (POST "/booking/:booking-id/payment" request
+      (handlers/post-payment-handler db-spec request))
+    (POST "/booking/:booking-id/cancel" request
+      (handlers/cancel-booking-handler db-spec request))
+    (GET "/booking/:booking-id/ticket" request
+      (handlers/get-tickets-by-booking-id-handler db-spec request))
+    (route/not-found "Not Found")))
 
 (defn swift-ticketing-app [db-spec]
   (-> (init-routes db-spec)
       (wrap-defaults (assoc-in site-defaults [:security :anti-forgery] false))
       wrap-json-response
-      (wrap-json-body {:keywords? true 
+      (wrap-json-body {:keywords? true
                        :bigdecimals? true})))
