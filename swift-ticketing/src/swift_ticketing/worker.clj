@@ -41,9 +41,7 @@
                                   :data {:booking-id booking-id}})))
 
 (defn- select-unbooked-tickets-with-db-lock [tx ticket-ids ticket-type-id ticket-quantity]
-  (let [selected-rows (jdbc/execute!
-                       tx
-                       (ticket/lock-unbooked-tickets ticket-ids ticket-type-id ticket-quantity))
+  (let [selected-rows (ticket/lock-unbooked-tickets tx ticket-ids ticket-type-id ticket-quantity)
         selected-ticket-ids (map #(:ticket/ticket_id %) selected-rows)
         reservation-timelimit-seconds (:ticket_type/reservation_timelimit_seconds
                                        (first selected-rows))]
@@ -51,7 +49,7 @@
      :reservation-timelimit-seconds reservation-timelimit-seconds}))
 
 (defn- select-unbooked-tickets-with-redis-lock [redis-opts tx ticket-ids ticket-type-id ticket-quantity]
-  (let [selected-rows (jdbc/execute! tx (ticket/select-unbooked-tickets false ticket-ids ticket-type-id ticket-quantity))
+  (let [selected-rows (ticket/select-unbooked-tickets tx false ticket-ids ticket-type-id ticket-quantity)
         selected-ticket-ids (map #(:ticket/ticket_id %) selected-rows)
         reservation-timelimit-seconds (:ticket_type/reservation_timelimit_seconds (first selected-rows))
         reduction-fn (fn [ticket-id-set ticket-id]
@@ -83,7 +81,7 @@
                           (nil-to-zero request-quantity)
                           (count ticket-ids))]
     (if (zero? ticket-quantity)
-      (jdbc/execute! db-spec (booking/update-booking-status booking-id booking/REJECTED))
+      (booking/update-booking-status db-spec booking-id booking/REJECTED)
       (jdbc/with-transaction [tx db-spec]
         (let [lock-unbooked-tickets (make-lock-unbooked-tickets-fn redis-opts tx)
               release-lock (make-unlock-unbooked-tickets-fn redis-opts)
@@ -99,25 +97,25 @@
                                             (.plus current-time
                                                    (Duration/ofSeconds reservation-timelimit-seconds)))]
           (when quantity-available?
-            (jdbc/execute! tx (ticket/reserve-tickets locked-ticket-ids booking-id reservation-expiration-time)))
-          (jdbc/execute! tx (booking/update-booking-status booking-id booking-status))
+            (ticket/reserve-tickets tx locked-ticket-ids booking-id reservation-expiration-time))
+          (booking/update-booking-status tx booking-id booking-status)
           (map #(release-lock %) locked-ticket-ids))))))
 
 (defn- handle-book-event [db-spec request]
   (jdbc/with-transaction [tx db-spec]
     (let [booking-id (get-in request [:data :booking-id])
-          selected-ticket-ids (->> (jdbc/execute! tx (ticket/lock-reserved-tickets booking-id))
+          selected-ticket-ids (->> (ticket/lock-reserved-tickets tx booking-id)
                                    (map #(:ticket/ticket_id %)))]
-      (jdbc/execute! tx (ticket/confirm-tickets selected-ticket-ids))
-      (jdbc/execute! tx (booking/update-booking-status booking-id booking/CONFIRMED)))))
+      (ticket/confirm-tickets tx selected-ticket-ids)
+      (booking/update-booking-status tx booking-id booking/CONFIRMED))))
 
 (defn- handle-cancel-event [db-spec request]
   (jdbc/with-transaction [tx db-spec]
     (let [booking-id (get-in request [:data :booking-id])
-          selected-ticket-ids (->> (jdbc/execute! tx (ticket/lock-reserved-tickets booking-id))
+          selected-ticket-ids (->> (ticket/lock-reserved-tickets tx booking-id)
                                    (map #(:ticket/ticket_id %)))]
-      (jdbc/execute! tx (ticket/cancel-tickets selected-ticket-ids))
-      (jdbc/execute! tx (booking/update-booking-status booking-id booking/CANCELED)))))
+      (ticket/cancel-tickets tx selected-ticket-ids)
+      (booking/update-booking-status tx booking-id booking/CANCELED))))
 
 (defn process-ticket-requests [worker-id db-spec redis-opts]
   (async/go
