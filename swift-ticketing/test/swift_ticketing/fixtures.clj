@@ -21,9 +21,11 @@
 (defn stop-test-system []
   (alter-var-root #'swift-ticketing-test-system component/stop))
 
-(defn setup-test-system [tests]
+(defn run-with-test-system [tests]
   ;; Init db connection pool, start workers
+  (println "start-test-system")
   (start-test-system)
+  (println "after start-test-system")
   (let [db (:database swift-ticketing-test-system)
         db-config (:db-config db)
         conn (:connection db)]
@@ -41,6 +43,31 @@
     (migrations/rollback-with db-config)
     ;; stop db connections, workers
     (stop-test-system)))
+
+(defn setup-test-system [test-plan]
+  ;; Init db connection pool, start workers
+  (start-test-system)
+  (let [db (:database swift-ticketing-test-system)
+        db-config (:db-config db)
+        conn (:connection db)]
+    ;; setup tables
+    (migrations/migrate-with db-config)
+    (let [test-user-id (factory/add-user-table-entry conn)]
+      ;; add a user, update it in test env
+      (alter-var-root
+       #'test-env #(assoc %
+                          :test-user-id test-user-id
+                          :db-spec conn))))
+  test-plan)
+
+(defn teardown-test-system [test-plan]
+  (let [db (:database swift-ticketing-test-system)
+        db-config (:db-config db)]
+    ;; rollback db
+    (migrations/rollback-with db-config)
+    ;; stop db connections, workers
+    (stop-test-system))
+  test-plan)
 
 (defn truncate-tables [db-spec]
   (let [tables [:ticket :ticket_type :booking :event]

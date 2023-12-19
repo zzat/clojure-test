@@ -1,0 +1,6 @@
+#kaocha/v1
+ {:fail-fast? false
+  :plugins [:hooks]
+  :kaocha.hooks/pre-run [swift-ticketing.fixtures/setup-test-system]
+  :kaocha.hooks/post-run [swift-ticketing.fixtures/teardown-test-system]
+  }

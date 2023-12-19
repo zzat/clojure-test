@@ -4,8 +4,7 @@
             [next.jdbc :as jdbc]
             [clojure.data.json :as json]
             [next.jdbc.result-set :as rs]
-            [clojure.set :as s]
-            [clojure.walk :refer [keywordize-keys stringify-keys]]
+            [clojure.walk :refer [keywordize-keys]]
             [swift-ticketing.app :refer [swift-ticketing-app]]
             [swift-ticketing.fixtures :as fixtures]
             [swift-ticketing.factory :as factory]
@@ -13,9 +12,8 @@
             [swift-ticketing.db.event :as db-event]
             [swift-ticketing.db.ticket :as ticket]
             [swift-ticketing.client :as client]
-            [swift-ticketing.specs :as specs]))
+            ))
 
-(use-fixtures :once fixtures/setup-test-system)
 (use-fixtures :each fixtures/clear-tables)
 
 (deftest create-event-test
@@ -152,8 +150,3 @@
       (create-ticket-test* event-id factory/general-ticket-request))
     (testing "Creating ticket (Seated)"
       (create-ticket-test* event-id factory/seated-ticket-request))))
-
-; (run-tests)
-(run-test create-event-test)
-(run-test list-events-test)
-(run-test get-event-test)

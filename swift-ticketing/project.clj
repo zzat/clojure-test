@@ -27,6 +27,8 @@
   :plugins [[lein-ring "0.12.6"]]
   :ring {:handler swift-ticketing.app/swift-ticketing-app}
   :aliases {"migrate" ["run" "-m" "swift-ticketing.migrations/migrate"]
-            "rollback" ["run" "-m" "swift-ticketing.migrations/rollback"]}
+            "rollback" ["run" "-m" "swift-ticketing.migrations/rollback"]
+            "kaocha" ["run" "-m" "kaocha.runner"]}
   :profiles {:uberjar {:aot :all
-                       :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}})
+                       :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}
+             :dev {:dependencies [[lambdaisland/kaocha "1.87.1366"]]}})
