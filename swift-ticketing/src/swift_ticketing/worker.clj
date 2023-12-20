@@ -7,38 +7,42 @@
             [swift-ticketing.redis :as redis])
   (:import [java.time Instant Duration]))
 
-(def ticket-queue (async/chan))
-
 (def reserve-event "RESERVE")
 (def book-event "BOOK")
 (def cancel-event "CANCEL")
 
-(defn add-ticket-request-to-queue [request]
-  (async/go (async/>! ticket-queue request)))
+(defn add-ticket-request-to-queue [message-queue request]
+  (async/go (async/>! message-queue request)))
 
-(defn add-reserve-ticket-request-to-queue [request]
+(defn add-reserve-ticket-request-to-queue [message-queue request]
   (let [event-type reserve-event
         booking-id (:booking-id request)
         ticket-ids (:ticket-ids request)
         ticket-type-id (:ticket-type-id request)
         quantity (:quantity request)]
-    (add-ticket-request-to-queue {:event event-type
-                                  :data {:booking-id booking-id
-                                         :ticket-ids ticket-ids
-                                         :ticket-type-id ticket-type-id
-                                         :quantity quantity}})))
+    (add-ticket-request-to-queue
+     message-queue
+     {:event event-type
+      :data {:booking-id booking-id
+             :ticket-ids ticket-ids
+             :ticket-type-id ticket-type-id
+             :quantity quantity}})))
 
-(defn add-book-ticket-request-to-queue [request]
+(defn add-book-ticket-request-to-queue [message-queue request]
   (let [event-type book-event
         booking-id (:booking-id request)]
-    (add-ticket-request-to-queue {:event event-type
-                                  :data {:booking-id booking-id}})))
+    (add-ticket-request-to-queue
+     message-queue
+     {:event event-type
+      :data {:booking-id booking-id}})))
 
-(defn add-cancel-ticket-request-to-queue [request]
+(defn add-cancel-ticket-request-to-queue [message-queue request]
   (let [event-type cancel-event
         booking-id (:booking-id request)]
-    (add-ticket-request-to-queue {:event event-type
-                                  :data {:booking-id booking-id}})))
+    (add-ticket-request-to-queue
+     message-queue
+     {:event event-type
+      :data {:booking-id booking-id}})))
 
 (defn- select-unbooked-tickets-with-db-lock [tx ticket-ids ticket-type-id ticket-quantity]
   (let [selected-rows (ticket/lock-unbooked-tickets tx ticket-ids ticket-type-id ticket-quantity)
@@ -117,11 +121,11 @@
       (ticket/cancel-tickets tx selected-ticket-ids)
       (booking/update-booking-status tx booking-id booking/CANCELED))))
 
-(defn process-ticket-requests [worker-id db-spec redis-opts]
+(defn process-ticket-requests [worker-id message-queue db-spec redis-opts]
   (async/go
     (while true
       (try
-        (let [request (async/<! ticket-queue)
+        (let [request (async/<! message-queue)
               event-type (:event request)]
           (println "Got Message:")
           (println request)

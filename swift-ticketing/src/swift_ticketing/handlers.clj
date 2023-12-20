@@ -93,48 +93,50 @@
      (s/valid? ::specs/event-id event-id)
      (validate-req body ::specs/create-tickets-params on-success))))
 
-(defn- reserve-ticket [db-spec uid event-id booking-req]
+(defn- reserve-ticket [db-spec message-queue uid event-id booking-req]
   (let [booking-id (java.util.UUID/randomUUID)
         req-ticket-ids (:ticket_ids booking-req)
         ticket-ids (when-not (nil? req-ticket-ids)
                      (map #(java.util.UUID/fromString %) req-ticket-ids))]
     (booking/insert-booking db-spec uid booking-id)
-    (worker/add-reserve-ticket-request-to-queue {:booking-id booking-id
-                                                 :ticket-type-id (:ticket_type_id booking-req)
-                                                 :ticket-ids ticket-ids
-                                                 :quantity (:quantity booking-req)})
+    (worker/add-reserve-ticket-request-to-queue
+     message-queue
+     {:booking-id booking-id
+      :ticket-type-id (:ticket_type_id booking-req)
+      :ticket-ids ticket-ids
+      :quantity (:quantity booking-req)})
     booking-id))
 
-(defn reserve-ticket-handler [db-spec request]
+(defn reserve-ticket-handler [db-spec message-queue request]
   (let [{:keys [cookies body route-params]} request
         uid (get-uid cookies)
         event-id (:event-id route-params)
         on-success (fn []
                      (respond-201
                       {"booking_id"
-                       (reserve-ticket db-spec uid event-id body)}))]
+                       (reserve-ticket db-spec message-queue uid event-id body)}))]
     (and
      (s/valid? ::specs/event-id event-id)
      (validate-req body ::specs/reserve-tickets-params on-success))))
 
-(defn- post-payment [db-spec booking-id]
-  (worker/add-book-ticket-request-to-queue {:booking-id booking-id}))
+(defn- post-payment [db-spec message-queue booking-id]
+  (worker/add-book-ticket-request-to-queue message-queue {:booking-id booking-id}))
 
-(defn post-payment-handler [db-spec request]
+(defn post-payment-handler [db-spec message-queue request]
   (let [booking-id (get-in request [:route-params :booking-id])
         on-success (fn []
-                     (post-payment db-spec booking-id)
+                     (post-payment db-spec message-queue booking-id)
                      (respond-200
                       {"booking_id" booking-id}))]
     (validate-req booking-id ::specs/booking-id on-success)))
 
-(defn- cancel-booking [db-spec booking-id]
-  (worker/add-cancel-ticket-request-to-queue {:booking-id booking-id}))
+(defn- cancel-booking [db-spec message-queue booking-id]
+  (worker/add-cancel-ticket-request-to-queue message-queue {:booking-id booking-id}))
 
-(defn cancel-booking-handler [db-spec request]
+(defn cancel-booking-handler [db-spec message-queue request]
   (let [booking-id (get-in request [:route-params :booking-id])
         on-success (fn []
-                     (cancel-booking db-spec booking-id)
+                     (cancel-booking db-spec message-queue booking-id)
                      (respond-200 {"booking_id" booking-id}))]
     (validate-req booking-id ::specs/booking-id on-success)))
 
@@ -164,5 +166,5 @@
 (defn get-tickets-by-booking-id-handler [db-spec request]
   (let [booking-id (get-in request [:route-params :booking-id])
         on-success (fn []
-            (respond-200 (get-tickets-by-booking-id db-spec booking-id)))]
+                     (respond-200 (get-tickets-by-booking-id db-spec booking-id)))]
     (validate-req booking-id ::specs/booking-id on-success)))
