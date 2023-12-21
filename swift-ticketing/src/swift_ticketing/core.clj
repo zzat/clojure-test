@@ -20,7 +20,7 @@
      :app (component/using
            (new-http-server (get-in config [:server :port])
                             (get-in config [:server :join?]))
-           [:database])
+           [:database :worker])
      :worker (component/using
               (new-worker 5 redis-opts)
               [:database]))))
