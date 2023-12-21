@@ -3,7 +3,7 @@
             [ring.adapter.jetty :refer [run-jetty]]
             [swift-ticketing.app :as app]))
 
-(defrecord HTTPServer [port database worker]
+(defrecord HTTPServer [port join? database worker]
   component/Lifecycle
 
   (start [component]
@@ -13,7 +13,7 @@
           server (run-jetty
                   (app/swift-ticketing-app connection message-queue)
                   {:port port
-                   :join? true})]
+                   :join? join?})]
       (assoc component :http-server server)))
 
   (stop [component]
@@ -21,5 +21,6 @@
     (.stop (:http-server component))
     (assoc component :http-server nil)))
 
-(defn new-http-server [port]
-  (map->HTTPServer {:port port}))
+(defn new-http-server [port join?]
+  (map->HTTPServer {:port port
+                    :join? join?}))
