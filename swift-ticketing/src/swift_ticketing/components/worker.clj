@@ -9,13 +9,18 @@
   (start [component]
     (println ";; Spawn workers")
     (let [connection (:connection database)
-          message-queue (async/chan)]
+          message-queue (async/chan)
+          exit-ch (async/chan)]
       (dotimes [i total-workers]
-        (w/process-ticket-requests i message-queue connection redis-opts))
-      (assoc component :message-queue message-queue)))
+        (w/process-ticket-requests i message-queue connection redis-opts exit-ch))
+      (assoc component
+             :message-queue message-queue
+             :worker-exit-ch exit-ch)))
 
   (stop [component]
     (println ";; Stop workers")
+    (dotimes [i total-workers]
+      (async/put! (:worker-exit-ch component) true))
     (async/close! (:message-queue component))
     (dissoc component :message-queue)))
 

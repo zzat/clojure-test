@@ -121,21 +121,28 @@
       (ticket/cancel-tickets tx selected-ticket-ids)
       (booking/update-booking-status tx booking-id booking/CANCELED))))
 
-(defn process-ticket-requests [worker-id message-queue db-spec redis-opts]
-  (async/go
-    (while true
-      (try
-        (let [request (async/<! message-queue)
-              event-type (:event request)]
-          (println "Got Message:")
-          (println request)
-          (cond
-            (= event-type reserve-event) (handle-reserve-event db-spec redis-opts request)
-            (= event-type book-event) (handle-book-event db-spec request)
-            (= event-type cancel-event) (handle-cancel-event db-spec request)
-            :else (println "Worker: Unknown event")))
-        (catch Exception e
-          (println (str "Exception in Worker: " worker-id " :" e)))))))
+(defn process-ticket-requests [worker-id message-queue db-spec redis-opts exit-ch]
+  (async/go-loop []
+    (cond
+      (= :continue
+         (async/alt!
+           message-queue
+           ([request]
+            (try
+              (let [event-type (:event request)]
+                  ; (println "Got Message:")
+                  ; (println request)
+                (cond
+                  (= event-type reserve-event) (handle-reserve-event db-spec redis-opts request)
+                  (= event-type book-event) (handle-book-event db-spec request)
+                  (= event-type cancel-event) (handle-cancel-event db-spec request)
+                  :else (println "Worker: Unknown event"))
+                :continue)
+              (catch Exception e
+                (println (str "Exception in Worker: " worker-id " :" e)))))
+
+           exit-ch :exit)) (recur)
+      :else nil)))
 
 ;; redis-opts is not nil when locking-strategy chosen is redis
 ; (defn workers [db-spec redis-opts total-workers]
