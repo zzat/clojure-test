@@ -5,8 +5,7 @@
    [ring.middleware.json :refer [wrap-json-response wrap-json-body]]
    [swift-ticketing.handlers :as handlers]
    [compojure.api.sweet :as compojure]
-   [compojure.api.sweet :refer :all]
-   [swift-ticketing.app :as app]))
+   [compojure.api.sweet :refer :all]))
 
 (defn init-routes [db-spec message-queue]
   (defroutes app-routes
