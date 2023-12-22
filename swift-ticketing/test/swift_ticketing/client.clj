@@ -1,22 +1,35 @@
 (ns swift-ticketing.client
   (:require
-   [ring.mock.request :as mock]
+   [clj-http.client :as http]
    [clojure.data.json :as json]
-   [swift-ticketing.app :refer [swift-ticketing-app]]
    [swift-ticketing.fixtures :as fixtures]
    [swift-ticketing.factory :as factory]))
 
+(defn- uid-cookie [uid]
+  {"uid" {:path "/"
+          :value (str uid)}})
+
+(defn- mk-url [server-spec url]
+  (str "http://localhost:"
+       (:port server-spec)
+       url))
+
 (defn- post-request [url body]
-  (-> (mock/request :post url)
-      (mock/json-body body)))
+  (let [{:keys [server-spec test-user-id]} fixtures/test-env]
+    (http/post (mk-url server-spec url) {:form-params body
+                                         :content-type :json
+                                         :cookies (uid-cookie test-user-id)
+                                         :throw-exceptions false})))
 
 (defn- get-request
-  ([url] (get-request url nil))
+  ([url] (get-request url {}))
   ([url query-params]
-   (-> (mock/request :get url)
-       ((fn [r] (if (nil? query-params)
-                  (identity r)
-                  (mock/query-string r query-params)))))))
+   (let [{:keys [server-spec test-user-id]} fixtures/test-env]
+     (http/get (mk-url server-spec url) {:query-params query-params
+                                         :cookies (uid-cookie test-user-id)
+                                         ; :as :json
+
+                                         :throw-exceptions false}))))
 
 (defn- response-to-json [response]
   (-> response
@@ -26,23 +39,14 @@
 (defn create-event
   ([] (create-event (factory/event-request)))
   ([request]
-   (let [{:keys [db-spec test-user-id]} fixtures/test-env
-         app (fn [req] ((swift-ticketing-app db-spec) req))
-         response (-> (post-request "/event" request)
-                      (mock/cookie "uid" test-user-id)
-                      app)]
+   (let [response (post-request "/event" request)]
      {:request request
       :status (:status response)
       :response (response-to-json response)})))
 
 (defn reserve-general-ticket
   [request]
-  (let [{:keys [db-spec test-user-id]} fixtures/test-env
-        app (fn [req] ((swift-ticketing-app db-spec) req))
-        response (-> (post-request "/event" request)
-                     (mock/cookie "uid" test-user-id)
-                     app)]
-    (println response)
+  (let [response (post-request "/event" request)]
     {:request request
      :status (:status response)
      :response (response-to-json response)}))
@@ -50,31 +54,21 @@
 (defn list-events
   ([] (list-events {}))
   ([query-params]
-   (let [{:keys [db-spec test-user-id]} fixtures/test-env
-         app (fn [req] ((swift-ticketing-app db-spec) req))
-         response (-> (get-request "/event" query-params)
-                      app)]
+   (let [response (get-request "/event" query-params)]
      {:query-params query-params
       :status (:status response)
       :response (response-to-json response)})))
 
 (defn get-event
   ([event-id]
-   (let [{:keys [db-spec test-user-id]} fixtures/test-env
-         app (fn [req] ((swift-ticketing-app db-spec) req))
-         response (-> (get-request (str "/event/" event-id))
-                      app)]
+   (let [response (get-request (str "/event/" event-id))]
      {:path-params event-id
       :status (:status response)
       :response (response-to-json response)})))
 
 (defn create-tickets
   ([event-id request]
-   (let [{:keys [db-spec test-user-id]} fixtures/test-env
-         app (fn [req] ((swift-ticketing-app db-spec) req))
-         response (-> (post-request (str "/event/" event-id "/ticket") request)
-                      (mock/cookie "uid" test-user-id)
-                      app)]
+   (let [response (post-request (str "/event/" event-id "/ticket") request)]
      {:request request
       :status (:status response)
       :response (response-to-json response)})))
@@ -87,32 +81,21 @@
 
 (defn reserve-ticket
   ([event-id request]
-   (let [{:keys [db-spec test-user-id]} fixtures/test-env
-         app (fn [req] ((swift-ticketing-app db-spec) req))
-         response (-> (post-request (str "/event/" event-id "/booking") request)
-                      (mock/cookie "uid" test-user-id)
-                      app)]
+   (let [response (post-request (str "/event/" event-id "/booking") request)]
      {:request request
       :status (:status response)
       :response (response-to-json response)})))
 
 (defn make-payment
   ([booking-id]
-   (let [{:keys [db-spec test-user-id]} fixtures/test-env
-         app (fn [req] ((swift-ticketing-app db-spec) req))
-         response (-> (post-request (str "/booking/" booking-id "/payment") nil)
-                      (mock/cookie "uid" test-user-id)
-                      app)]
+   (let [response (post-request (str "/booking/" booking-id "/payment") nil)]
      {:path-params booking-id
       :status (:status response)
       :response (response-to-json response)})))
 
 (defn get-booking-status
   ([booking-id]
-   (let [{:keys [db-spec]} fixtures/test-env
-         app (fn [req] ((swift-ticketing-app db-spec) req))
-         response (-> (get-request (str "/booking/" booking-id "/status"))
-                      app)]
+   (let [response (get-request (str "/booking/" booking-id "/status"))]
      {:path-params booking-id
       :status (:status response)
       :response (response-to-json response)})))

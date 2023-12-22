@@ -16,6 +16,7 @@
                  [org.postgresql/postgresql "42.6.0"]
                  [ring/ring-json "0.5.1"]
                  [ring/ring-mock "0.4.0"]
+                 [clj-http "3.12.3"]
                  [org.clojure/core.async "1.6.681"]
                  [metosin/compojure-api "2.0.0-alpha31"]
                  [org.clojure/data.json "2.4.0"]
