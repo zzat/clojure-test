@@ -1,6 +1,6 @@
 (ns swift-ticketing.db.ticket
   (:require [honey.sql :as sql]
-            [swift-ticketing.db.query :refer [run-query!]])
+            [swift-ticketing.db.query :refer [run-query! run-query-one!]])
   (:import [java.time Instant]))
 
 ;; ticket_status
@@ -32,6 +32,13 @@
                             [:cast event-id :uuid]
                             reservation-timelimit-seconds
                             [:cast seat-type :seat_type]]]}))))
+
+(defn get-ticket-type [db-spec ticket-type-id]
+  (run-query-one! 
+    db-spec
+    (sql/format {:select [:*] 
+                 :from :ticket_type
+                 :where [:= :ticket_type_id [:cast ticket-type-id :uuid]]})))
 
 (defn insert-tickets [db-spec ticket-type-id tickets price]
   (run-query!
