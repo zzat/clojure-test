@@ -93,9 +93,31 @@
       :status (:status response)
       :response (response-to-json response)})))
 
+(defn cancel-booking
+  ([booking-id]
+   (let [response (post-request (str "/booking/" booking-id "/cancel") nil)]
+     {:path-params booking-id
+      :status (:status response)
+      :response (response-to-json response)})))
+
 (defn get-booking-status
   ([booking-id]
    (let [response (get-request (str "/booking/" booking-id "/status"))]
+     {:path-params booking-id
+      :status (:status response)
+      :response (response-to-json response)})))
+
+(defn get-tickets
+  ([ticket-type-id]
+   (let [response (get-request "/ticket" {"ticket_type_id" ticket-type-id})]
+     (println response)
+     {:query-params ticket-type-id
+      :status (:status response)
+      :response (response-to-json response)})))
+
+(defn get-tickets-by-booking-id
+  ([booking-id]
+   (let [response (get-request (str "/booking/" booking-id "/ticket"))]
      {:path-params booking-id
       :status (:status response)
       :response (response-to-json response)})))

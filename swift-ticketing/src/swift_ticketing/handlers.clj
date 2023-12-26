@@ -8,21 +8,21 @@
    [swift-ticketing.model.ticket :as ticket]
    [swift-ticketing.model.booking :as booking]))
 
-(defn respond-json [status body]
+(defn- respond-json [status body]
   {:status status
    :headers {"Content-Type" "application/json"}
    :body body})
 
-(defn respond-400 [body]
+(defn- respond-400 [body]
   (respond-json 400 body))
 
-(defn respond-201 [body]
+(defn- respond-201 [body]
   (respond-json 201 body))
 
-(defn respond-200 [body]
+(defn- respond-200 [body]
   (respond-json 200 body))
 
-(defn validate-req [req spec handler]
+(defn- validate-req [req spec handler]
   (if (s/valid? spec req)
     (handler)
     (respond-400 (s/explain-data spec req))))
@@ -37,7 +37,7 @@
         on-success (fn []
                      (respond-200
                       (event/get-events db-spec filters)))]
-    (validate-req filters ::specs/get-event-params on-success)))
+    (validate-req filters ::specs/get-events-params on-success)))
 
 (defn get-event-handler [db-spec request]
   (let [event-id (get-in request [:route-params :event-id])
@@ -82,7 +82,7 @@
 (defn post-payment-handler [db-spec message-queue request]
   (let [booking-id (get-in request [:route-params :booking-id])
         on-success (fn []
-                     (booking/make-payment db-spec message-queue booking-id)
+                     (booking/make-payment message-queue booking-id)
                      (respond-200
                       {"booking_id" booking-id}))]
     (validate-req booking-id ::specs/booking-id on-success)))
@@ -90,7 +90,7 @@
 (defn cancel-booking-handler [db-spec message-queue request]
   (let [booking-id (get-in request [:route-params :booking-id])
         on-success (fn []
-                     (booking/cancel-booking db-spec message-queue booking-id)
+                     (booking/cancel-booking message-queue booking-id)
                      (respond-200 {"booking_id" booking-id}))]
     (validate-req booking-id ::specs/booking-id on-success)))
 

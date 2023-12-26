@@ -106,7 +106,7 @@
    (sql/format {:update :ticket
                 :set {:booking_id [:cast booking-id :uuid]
                       :ticket_status [:cast RESERVED :ticket_status]
-                      :reservation_expiration_time reservation-expiration-time}
+                      :reservation_expiration_time [:cast (.toString reservation-expiration-time) :timestamptz]}
                 :where [:in :ticket_id ticket-ids]})))
 
 (defn reset-ticket-status [db-spec ticket-ids status]

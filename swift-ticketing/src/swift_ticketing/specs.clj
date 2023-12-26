@@ -35,7 +35,7 @@
 (s/def ::seats vector?)
 (s/def ::ticket_ids vector?)
 
-(s/def ::get-event-params
+(s/def ::get-events-params
   (s/keys :opt-un [::venue ::to ::from]))
 
 (s/def ::create-event-params

@@ -1,7 +1,9 @@
 (ns swift-ticketing.factory
   (:require
    [next.jdbc :as jdbc]
-   [honey.sql :as sql]))
+   [honey.sql :as sql]
+   [swift-ticketing.db.ticket :as db-ticket])
+  (:import [java.time Instant Duration]))
 
 (defn mk-prefix [x]
   (str x "-"))
@@ -28,6 +30,16 @@
   (apply format "%4d-%02d-%02d" [(+ 2023 (rand-int 5))
                                  (inc (rand-int 12))
                                  (inc (rand-int 28))]))
+
+(defn random-str []
+  (apply
+   str
+   (repeatedly 15 #(rand-nth "abcdefghijklmnopqrstuvwxyz"))))
+
+(defn get-events-params []
+  {"venue" (random-str)
+   "from" (random-date)
+   "to" (random-date)})
 
 (defn event-request []
   (let [random-id (rand-int 10000)]
@@ -75,6 +87,20 @@
 
 (defn mk-reserve-seated-ticket-request [ticket-ids]
   {"ticket_ids" ticket-ids})
+
+(defn mk-ticket []
+  {:ticket_id (java.util.UUID/randomUUID)
+   :ticket_name (mk-ticket-name (rand-int 1000))
+   :ticket_type_id (java.util.UUID/randomUUID)
+   :ticket_price (+ 10 (rand-int 10000))
+   :reservation_expiration_time (.plus (Instant/now)
+                                       (Duration/ofSeconds (+ 10 (rand-int 200))))
+   :ticket_status db-ticket/AVAILABLE
+   :booking_id (java.util.UUID/randomUUID)})
+
+(defn mk-tickets []
+  (map (fn [_] (mk-ticket))
+       (range (inc (rand-int 20)))))
 
 (defn add-user-table-entry [db-spec]
   (let [user-id (java.util.UUID/randomUUID)
