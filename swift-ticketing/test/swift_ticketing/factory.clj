@@ -102,6 +102,16 @@
   (map (fn [_] (mk-ticket))
        (range (inc (rand-int 20)))))
 
+(defn worker-reserve-ticket-request
+  ([] (worker-reserve-ticket-request 
+        (java.util.UUID/randomUUID)
+        (map :ticket-ids (mk-tickets))))
+  ([booking-id ticket-ids]
+   {:booking-id booking-id
+    :ticket-ids ticket-ids
+    :ticket-type-id (java.util.UUID/randomUUID)
+    :quantity (rand-int 1000)}))
+
 (defn add-user-table-entry [db-spec]
   (let [user-id (java.util.UUID/randomUUID)
         insert-user (sql/format {:insert-into :user_account

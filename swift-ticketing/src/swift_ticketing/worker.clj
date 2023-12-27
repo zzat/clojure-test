@@ -1,21 +1,21 @@
 (ns swift-ticketing.worker
   (:require [clojure.core.async :as async]
-            [swift-ticketing.db.ticket :as ticket]
-            [swift-ticketing.db.booking :as booking]
+            [swift-ticketing.db.ticket :as db-ticket]
+            [swift-ticketing.db.booking :as db-booking]
             [next.jdbc :as jdbc]
             [clojure.core :as c]
             [swift-ticketing.redis :as redis])
   (:import [java.time Instant Duration]))
 
-(def reserve-event "RESERVE")
-(def book-event "BOOK")
-(def cancel-event "CANCEL")
+(def RESERVE "RESERVE")
+(def BOOK "BOOK")
+(def CANCEL "CANCEL")
 
-(defn add-ticket-request-to-queue [message-queue request]
+(defn- add-ticket-request-to-queue [message-queue request]
   (async/go (async/>! message-queue request)))
 
 (defn add-reserve-ticket-request-to-queue [message-queue request]
-  (let [event-type reserve-event
+  (let [event-type RESERVE
         booking-id (:booking-id request)
         ticket-ids (:ticket-ids request)
         ticket-type-id (:ticket-type-id request)
@@ -29,7 +29,7 @@
              :quantity quantity}})))
 
 (defn add-book-ticket-request-to-queue [message-queue request]
-  (let [event-type book-event
+  (let [event-type BOOK
         booking-id (:booking-id request)]
     (add-ticket-request-to-queue
      message-queue
@@ -37,7 +37,7 @@
       :data {:booking-id booking-id}})))
 
 (defn add-cancel-ticket-request-to-queue [message-queue request]
-  (let [event-type cancel-event
+  (let [event-type CANCEL
         booking-id (:booking-id request)]
     (add-ticket-request-to-queue
      message-queue
@@ -45,15 +45,15 @@
       :data {:booking-id booking-id}})))
 
 (defn- select-unbooked-tickets-with-db-lock [tx ticket-ids ticket-type-id ticket-quantity]
-  (let [selected-rows (ticket/lock-unbooked-tickets tx ticket-ids ticket-type-id ticket-quantity)
-        selected-ticket-ids (map #(:ticket/ticket_id %) selected-rows)
-        reservation-timelimit-seconds (:ticket_type/reservation_timelimit_seconds
+  (let [selected-rows (db-ticket/lock-unbooked-tickets tx ticket-ids ticket-type-id ticket-quantity)
+        selected-ticket-ids (map #(:ticket_id %) selected-rows)
+        reservation-timelimit-seconds (:reservation_timelimit_seconds
                                        (first selected-rows))]
     {:locked-ticket-ids selected-ticket-ids
      :reservation-timelimit-seconds reservation-timelimit-seconds}))
 
 (defn- select-unbooked-tickets-with-redis-lock [redis-opts tx ticket-ids ticket-type-id ticket-quantity]
-  (let [selected-rows (ticket/select-unbooked-tickets tx false ticket-ids ticket-type-id ticket-quantity)
+  (let [selected-rows (db-ticket/select-unbooked-tickets tx false ticket-ids ticket-type-id ticket-quantity)
         selected-ticket-ids (map #(:ticket/ticket_id %) selected-rows)
         reservation-timelimit-seconds (:ticket_type/reservation_timelimit_seconds (first selected-rows))
         reduction-fn (fn [ticket-id-set ticket-id]
@@ -61,7 +61,6 @@
                          ticket-id-set
                          (conj ticket-id-set ticket-id)))
         locked-ticket-ids (reduce reduction-fn #{} selected-ticket-ids)]
-    (println locked-ticket-ids)
     {:locked-ticket-ids locked-ticket-ids
      :reservation-timelimit-seconds reservation-timelimit-seconds}))
 
@@ -85,7 +84,7 @@
                           (nil-to-zero request-quantity)
                           (count ticket-ids))]
     (if (zero? ticket-quantity)
-      (booking/update-booking-status db-spec booking-id booking/REJECTED)
+      (db-booking/update-booking-status db-spec booking-id db-booking/REJECTED)
       (jdbc/with-transaction [tx db-spec]
         (let [lock-unbooked-tickets (make-lock-unbooked-tickets-fn redis-opts tx)
               release-lock (make-unlock-unbooked-tickets-fn redis-opts)
@@ -94,32 +93,32 @@
               (lock-unbooked-tickets ticket-ids ticket-type-id ticket-quantity)
               quantity-available? (and (pos? (count locked-ticket-ids))
                                        (= (count locked-ticket-ids) ticket-quantity))
-              booking-status (if quantity-available? booking/PAYMENTPENDING booking/REJECTED)
+              booking-status (if quantity-available? db-booking/PAYMENTPENDING db-booking/REJECTED)
               current-time (Instant/now)
               reservation-expiration-time (if (nil? reservation-timelimit-seconds)
                                             nil
                                             (.plus current-time
                                                    (Duration/ofSeconds reservation-timelimit-seconds)))]
           (when quantity-available?
-            (ticket/reserve-tickets tx locked-ticket-ids booking-id reservation-expiration-time))
-          (booking/update-booking-status tx booking-id booking-status)
+            (db-ticket/reserve-tickets tx locked-ticket-ids booking-id reservation-expiration-time))
+          (db-booking/update-booking-status tx booking-id booking-status)
           (map #(release-lock %) locked-ticket-ids))))))
 
 (defn- handle-book-event [db-spec request]
   (jdbc/with-transaction [tx db-spec]
     (let [booking-id (get-in request [:data :booking-id])
-          selected-ticket-ids (->> (ticket/lock-reserved-tickets tx booking-id)
-                                   (map #(:ticket/ticket_id %)))]
-      (ticket/confirm-tickets tx selected-ticket-ids)
-      (booking/update-booking-status tx booking-id booking/CONFIRMED))))
+          selected-ticket-ids (->> (db-ticket/lock-reserved-tickets tx booking-id)
+                                   (map :ticket_id))]
+      (db-ticket/confirm-tickets tx selected-ticket-ids)
+      (db-booking/update-booking-status tx booking-id db-booking/CONFIRMED))))
 
 (defn- handle-cancel-event [db-spec request]
   (jdbc/with-transaction [tx db-spec]
     (let [booking-id (get-in request [:data :booking-id])
-          selected-ticket-ids (->> (ticket/lock-reserved-tickets tx booking-id)
-                                   (map #(:ticket/ticket_id %)))]
-      (ticket/cancel-tickets tx selected-ticket-ids)
-      (booking/update-booking-status tx booking-id booking/CANCELED))))
+          selected-ticket-ids (->> (db-ticket/lock-reserved-tickets tx booking-id)
+                                   (map :ticket_id))]
+      (db-ticket/cancel-tickets tx selected-ticket-ids)
+      (db-booking/update-booking-status tx booking-id db-booking/CANCELED))))
 
 (defn process-ticket-requests [worker-id message-queue db-spec redis-opts exit-ch]
   (async/go-loop []
@@ -133,9 +132,9 @@
                   ; (println "Got Message:")
                   ; (println request)
                 (cond
-                  (= event-type reserve-event) (handle-reserve-event db-spec redis-opts request)
-                  (= event-type book-event) (handle-book-event db-spec request)
-                  (= event-type cancel-event) (handle-cancel-event db-spec request)
+                  (= event-type RESERVE) (handle-reserve-event db-spec redis-opts request)
+                  (= event-type BOOK) (handle-book-event db-spec request)
+                  (= event-type CANCEL) (handle-cancel-event db-spec request)
                   :else (println "Worker: Unknown event"))
                 :continue)
               (catch Exception e
