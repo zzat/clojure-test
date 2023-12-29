@@ -4,7 +4,8 @@
             [swift-ticketing.db.booking :as booking]
             [next.jdbc :as jdbc]
             [clojure.core :as c]
-            [swift-ticketing.redis :as redis])
+            [swift-ticketing.redis :as redis]
+            [taoensso.timbre :as log])
   (:import [java.time Instant Duration]))
 
 (def reserve-event "RESERVE")
@@ -61,7 +62,6 @@
                          ticket-id-set
                          (conj ticket-id-set ticket-id)))
         locked-ticket-ids (reduce reduction-fn #{} selected-ticket-ids)]
-    (println locked-ticket-ids)
     {:locked-ticket-ids locked-ticket-ids
      :reservation-timelimit-seconds reservation-timelimit-seconds}))
 
@@ -130,16 +130,15 @@
            ([request]
             (try
               (let [event-type (:event request)]
-                  ; (println "Got Message:")
-                  ; (println request)
+                (log/debug "Got Message:" request)
                 (cond
                   (= event-type reserve-event) (handle-reserve-event db-spec redis-opts request)
                   (= event-type book-event) (handle-book-event db-spec request)
                   (= event-type cancel-event) (handle-cancel-event db-spec request)
-                  :else (println "Worker: Unknown event"))
+                  :else (log/error "Worker: Unknown event"))
                 :continue)
               (catch Exception e
-                (println (str "Exception in Worker: " worker-id " :" e)))))
+                (log/error "Exception in Worker: " worker-id " :" e))))
 
            exit-ch :exit)) (recur)
       :else nil)))

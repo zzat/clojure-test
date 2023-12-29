@@ -1,8 +1,9 @@
 (ns swift-ticketing.redis
-  (:require [taoensso.carmine :as car :refer [wcar]]))
+  (:require [taoensso.carmine :as car :refer [wcar]]
+            [taoensso.timbre :as log]))
 
 (defn acquire-lock [redis-opts lock-key timeout]
-  (println (str "Locking" lock-key))
+  (log/debug "Locking" lock-key)
   (let [lock-id (java.util.UUID/randomUUID)]
     (wcar redis-opts
           (let [ok (car/setnx lock-key lock-id)]
