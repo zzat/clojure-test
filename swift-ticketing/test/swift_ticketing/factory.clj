@@ -2,7 +2,8 @@
   (:require
    [next.jdbc :as jdbc]
    [honey.sql :as sql]
-   [swift-ticketing.db.ticket :as db-ticket])
+   [swift-ticketing.db.ticket :as db-ticket]
+   [swift-ticketing.db.booking :as db-booking])
   (:import [java.time Instant Duration]))
 
 (defn mk-prefix [x]
@@ -35,6 +36,13 @@
   (apply
    str
    (repeatedly 15 #(rand-nth "abcdefghijklmnopqrstuvwxyz"))))
+
+(defn random-booking-status []
+  (rand-nth [db-booking/INPROCESS
+             db-booking/PAYMENTPENDING
+             db-booking/CONFIRMED
+             db-booking/CANCELED
+             db-booking/REJECTED]))
 
 (defn get-events-params []
   {"venue" (random-str)
