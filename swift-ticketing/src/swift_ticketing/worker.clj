@@ -119,24 +119,27 @@
       (ticket/cancel-tickets tx selected-ticket-ids)
       (booking/update-booking-status tx booking-id booking/CANCELED))))
 
+(defn- process-ticket-request* [worker-id db-spec redis-opts request]
+  (try
+    (let [event-type (:event request)]
+      (log/debug "Got Message:" request)
+      (cond
+        (= event-type reserve-event)
+        (handle-reserve-event db-spec redis-opts request)
+        (= event-type book-event)
+        (handle-book-event db-spec request)
+        (= event-type cancel-event)
+        (handle-cancel-event db-spec request)
+        :else (log/error "Worker: Unknown event"))
+      :continue)
+    (catch Exception e
+      (log/error "Exception in Worker: " worker-id " :" e))))
+
 (defn process-ticket-requests [worker-id message-queue db-spec redis-opts exit-ch]
   (async/go-loop []
     (cond
       (= :continue
          (async/alt!
-           message-queue
-           ([request]
-            (try
-              (let [event-type (:event request)]
-                (log/debug "Got Message:" request)
-                (cond
-                  (= event-type reserve-event) (handle-reserve-event db-spec redis-opts request)
-                  (= event-type book-event) (handle-book-event db-spec request)
-                  (= event-type cancel-event) (handle-cancel-event db-spec request)
-                  :else (log/error "Worker: Unknown event"))
-                :continue)
-              (catch Exception e
-                (log/error "Exception in Worker: " worker-id " :" e))))
-
+           message-queue (partial process-ticket-request* worker-id db-spec redis-opts)
            exit-ch :exit)) (recur)
       :else nil)))
