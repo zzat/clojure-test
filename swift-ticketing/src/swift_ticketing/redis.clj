@@ -4,7 +4,7 @@
 
 (defn acquire-lock [redis-opts lock-key timeout]
   (log/debug "Locking" lock-key)
-  (let [lock-id (java.util.UUID/randomUUID)]
+  (let [lock-id (random-uuid)]
     (wcar redis-opts
           (let [ok (car/setnx lock-key lock-id)]
             (when ok

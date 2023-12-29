@@ -63,7 +63,7 @@
 
 (deftest get-event-test
   (testing "Get event with tickets info"
-    (let [event-id (java.util.UUID/randomUUID)
+    (let [event-id (random-uuid)
           expected [(factory/event-with-tickets event-id)]]
       (with-redefs [db-event/get-event-with-tickets (constantly expected)]
         (let [{:keys [response status]} (client/get-event event-id)
@@ -108,8 +108,8 @@
   (testing "with valid request"
     (let [{:keys [test-user-id db-spec]} fixtures/test-env
           ticket-request (ticket-request-fn)
-          ticket-type-id (str (java.util.UUID/randomUUID))
-          stubbed-tickets [{:ticket-id (java.util.UUID/randomUUID)}]
+          ticket-type-id (str (random-uuid))
+          stubbed-tickets [{:ticket-id (random-uuid)}]
           create-tickets-called-with-correct-args (atom false)]
       (with-redefs
        [ticket/create-tickets
@@ -137,7 +137,7 @@
                     (str "Request without '" key "' should return 400"))))))))))
 
 (deftest create-ticket-test
-  (let [event-id (java.util.UUID/randomUUID)]
+  (let [event-id (random-uuid)]
     (testing "Creating ticket (General)"
       (create-ticket-test* event-id factory/general-ticket-request))
     (testing "Creating ticket (Seated)"
@@ -145,8 +145,8 @@
 
 (defn- reserve-ticket-test* [reserve-ticket-req-fn]
   (let [{:keys [db-spec test-user-id]} fixtures/test-env
-        expected-booking-id (str (java.util.UUID/randomUUID))
-        event-id (java.util.UUID/randomUUID)
+        expected-booking-id (str (random-uuid))
+        event-id (random-uuid)
         reserve-ticket-req (reserve-ticket-req-fn)
         reserve-ticket-called-with-correct-args (atom false)]
     (testing "with valid request"
@@ -174,18 +174,18 @@
               (str "Request without '" key "' should return 400")))))))
 
 (deftest reserve-ticket-test
-  (let [event-id (java.util.UUID/randomUUID)]
+  (let [event-id (random-uuid)]
     (testing "Reserving ticket (General)"
       (reserve-ticket-test* #(factory/mk-reserve-general-ticket-request
                               (inc (rand-int 10))
-                              (java.util.UUID/randomUUID)))
+                              (random-uuid)))
       (testing "Reserving ticket (Seated)"
         (reserve-ticket-test* #(factory/mk-reserve-seated-ticket-request
-                                [(java.util.UUID/randomUUID)]))))))
+                                [(random-uuid)]))))))
 
 (deftest make-payment-test
   (testing "Payment handler"
-    (let [booking-id (str (java.util.UUID/randomUUID))
+    (let [booking-id (str (random-uuid))
           make-payment-called-with-correct-args (atom false)]
       (with-redefs [booking/make-payment
                     (fn [_ bid]
@@ -198,7 +198,7 @@
 
 (deftest cancel-booking-test
   (testing "Cancel Booking handler"
-    (let [booking-id (str (java.util.UUID/randomUUID))
+    (let [booking-id (str (random-uuid))
           cancel-booking-called-with-correct-args (atom false)]
       (with-redefs [booking/cancel-booking
                     (fn [_ bid]
@@ -212,7 +212,7 @@
 (deftest get-booking-status-test
   (testing "Get Booking Status handler"
     (let [{:keys [db-spec]} fixtures/test-env
-          booking-id (str (java.util.UUID/randomUUID))
+          booking-id (str (random-uuid))
           expected-booking-status :booking-status
           get-booking-status-called-with-correct-args (atom false)]
       (with-redefs [booking/get-booking-status
@@ -230,7 +230,7 @@
 (deftest get-tickets-test
   (testing "Get tickets by ticket type"
     (let [{:keys [db-spec]} fixtures/test-env
-          ticket-type-id (str (java.util.UUID/randomUUID))
+          ticket-type-id (str (random-uuid))
           stubbed-tickets [:tickets]]
       (with-redefs [ticket/get-tickets
                     (fn [dbs tid]
@@ -244,7 +244,7 @@
 (deftest get-tickets-by-booking-id-test
   (testing "Get tickets by booking id"
     (let [{:keys [db-spec]} fixtures/test-env
-          booking-id (str (java.util.UUID/randomUUID))
+          booking-id (str (random-uuid))
           stubbed-tickets [:tickets]]
       (with-redefs [ticket/get-tickets-by-booking-id
                     (fn [dbs bid]
