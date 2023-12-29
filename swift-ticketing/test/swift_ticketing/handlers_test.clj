@@ -1,21 +1,13 @@
 (ns swift-ticketing.handlers-test
-  (:require [clojure.test :refer :all]
-            [ring.mock.request :as mock]
-            [next.jdbc :as jdbc]
-            [clojure.data.json :as json]
-            [next.jdbc.result-set :as rs]
+  (:require [clojure.test :refer [deftest use-fixtures testing is]]
             [clojure.walk :refer [keywordize-keys]]
-            [swift-ticketing.app :refer [swift-ticketing-app]]
             [swift-ticketing.fixtures :as fixtures]
             [swift-ticketing.factory :as factory]
-            [swift-ticketing.utils :as utils]
             [swift-ticketing.model.event :as event]
             [swift-ticketing.db.event :as db-event]
             [swift-ticketing.model.ticket :as ticket]
-            [swift-ticketing.db.ticket :as db-ticket]
             [swift-ticketing.client :as client]
-            [swift-ticketing.model.booking :as booking]
-            [swift-ticketing.db.booking :as db-booking]))
+            [swift-ticketing.model.booking :as booking]))
 
 (use-fixtures :each fixtures/clear-tables)
 
