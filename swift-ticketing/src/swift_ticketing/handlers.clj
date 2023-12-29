@@ -1,7 +1,6 @@
 (ns swift-ticketing.handlers
   (:require
    [clojure.spec.alpha :as s]
-   [clojure.set :as set]
    [swift-ticketing.model.event :as event]
    [swift-ticketing.specs :as specs]
    [clojure.walk :refer [keywordize-keys]]
@@ -50,7 +49,7 @@
         uid (get-uid cookies)
         on-success (fn []
                      (respond-201
-                      {"event_id" (event/create-event db-spec uid body)}))]
+                      {:event-id (event/create-event db-spec uid body)}))]
     (validate-req body ::specs/create-event-params on-success)))
 
 (defn create-tickets-handler [db-spec request]
@@ -61,8 +60,8 @@
                      (let [{:keys [ticket-type-id tickets]}
                            (ticket/create-tickets db-spec uid event-id body)]
                        (respond-201
-                        {"ticket_type_id" ticket-type-id
-                         "tickets" (map #(set/rename-keys % {:ticket-id "ticket_id"}) tickets)})))]
+                        {:ticket-type-id ticket-type-id
+                         :tickets tickets})))]
     (and
      (s/valid? ::specs/event-id event-id)
      (validate-req body ::specs/create-tickets-params on-success))))
@@ -73,7 +72,7 @@
         event-id (:event-id route-params)
         on-success (fn []
                      (respond-201
-                      {"booking_id"
+                      {:booking-id
                        (ticket/reserve-ticket db-spec message-queue uid event-id body)}))]
     (and
      (s/valid? ::specs/event-id event-id)
@@ -84,21 +83,21 @@
         on-success (fn []
                      (booking/make-payment message-queue booking-id)
                      (respond-200
-                      {"booking_id" booking-id}))]
+                      {:booking-id booking-id}))]
     (validate-req booking-id ::specs/booking-id on-success)))
 
 (defn cancel-booking-handler [db-spec message-queue request]
   (let [booking-id (get-in request [:route-params :booking-id])
         on-success (fn []
                      (booking/cancel-booking message-queue booking-id)
-                     (respond-200 {"booking_id" booking-id}))]
+                     (respond-200 {:booking-id booking-id}))]
     (validate-req booking-id ::specs/booking-id on-success)))
 
 (defn get-booking-status-handler [db-spec request]
   (let [booking-id (get-in request [:route-params :booking-id])
         on-success (fn []
                      (respond-200
-                      {"booking_status"
+                      {:booking-status
                        (booking/get-booking-status db-spec booking-id)}))]
     (validate-req booking-id ::specs/booking-id on-success)))
 
