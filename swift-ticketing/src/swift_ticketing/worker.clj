@@ -15,12 +15,10 @@
 (defn add-ticket-request-to-queue [message-queue request]
   (async/go (async/>! message-queue request)))
 
-(defn add-reserve-ticket-request-to-queue [message-queue request]
-  (let [event-type reserve-event
-        booking-id (:booking-id request)
-        ticket-ids (:ticket-ids request)
-        ticket-type-id (:ticket-type-id request)
-        quantity (:quantity request)]
+(defn add-reserve-ticket-request-to-queue
+  [message-queue
+   {:keys [booking-id ticket-ids ticket-type-id quantity]}]
+  (let [event-type reserve-event]
     (add-ticket-request-to-queue
      message-queue
      {:event event-type
@@ -75,14 +73,14 @@
     (nil? redis-opts) (constantly nil)
     :else (partial redis/release-lock redis-opts)))
 
-(defn- handle-reserve-event [db-spec redis-opts request]
-  (let [booking-id (get-in request [:data :booking-id])
-        ticket-ids (get-in request [:data :ticket-ids])
-        ticket-type-id (get-in request [:data :ticket-type-id])
-        request-quantity (get-in request [:data :quantity])
+(defn- handle-reserve-event
+  [db-spec
+   redis-opts
+   {{:keys [booking-id ticket-ids ticket-type-id quantity]} :data}]
+  (let [requested-quantity quantity
         nil-to-zero (fn [x] (if (nil? x) 0 x))
         ticket-quantity (if (nil? ticket-ids)
-                          (nil-to-zero request-quantity)
+                          (nil-to-zero requested-quantity)
                           (count ticket-ids))]
     (if (zero? ticket-quantity)
       (booking/update-booking-status db-spec booking-id booking/REJECTED)
@@ -142,8 +140,3 @@
 
            exit-ch :exit)) (recur)
       :else nil)))
-
-;; redis-opts is not nil when locking-strategy chosen is redis
-; (defn workers [db-spec redis-opts total-workers]
-;   (dotimes [i total-workers]
-;     (.start (Thread. #(process-ticket-requests i db-spec redis-opts)))))

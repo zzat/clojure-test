@@ -3,12 +3,15 @@
             [swift-ticketing.db.booking :as db-booking]
             [swift-ticketing.worker :as worker]))
 
-(defn create-tickets [db-spec uid event-id ticket-req]
-  (let [seat-type (:seat-type ticket-req)
-        tickets-map (if (= seat-type db-ticket/NAMED)
-                      (:seats ticket-req)
-                      (map (fn [_] {:name ""}) (range (:quantity ticket-req))))
-        price (:price ticket-req)
+(defn create-tickets
+  [db-spec
+   uid
+   event-id
+   {:keys [seat-type seats price quantity]
+    :as ticket-req}]
+  (let [tickets-map (if (= seat-type db-ticket/NAMED)
+                      seats
+                      (map (fn [_] {:name ""}) (range quantity)))
         ticket-type-id (random-uuid)
         tickets
         (map (fn [m] (assoc m :ticket-id (random-uuid))) tickets-map)]
