@@ -106,10 +106,6 @@
    :ticket_status db-ticket/AVAILABLE
    :booking_id (random-uuid)})
 
-(defn mk-tickets []
-  (map (fn [_] (mk-ticket))
-       (range (inc (rand-int 20)))))
-
 (defn add-user-table-entry [db-spec]
   (let [user-id (random-uuid)
         insert-user (sql/format {:insert-into :user_account

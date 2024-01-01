@@ -25,9 +25,9 @@
     (GET "/booking/:booking-id/status" request
       (handlers/get-booking-status-handler db-spec request))
     (POST "/booking/:booking-id/payment" request
-      (handlers/post-payment-handler db-spec message-queue request))
+      (handlers/post-payment-handler message-queue request))
     (POST "/booking/:booking-id/cancel" request
-      (handlers/cancel-booking-handler db-spec message-queue request))
+      (handlers/cancel-booking-handler message-queue request))
     (GET "/booking/:booking-id/ticket" request
       (handlers/get-tickets-by-booking-id-handler db-spec request))
     (route/not-found "Not Found")))

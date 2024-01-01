@@ -78,7 +78,7 @@
      (s/valid? ::specs/event-id event-id)
      (validate-req body ::specs/reserve-tickets-params on-success))))
 
-(defn post-payment-handler [db-spec message-queue request]
+(defn post-payment-handler [message-queue request]
   (let [booking-id (get-in request [:route-params :booking-id])
         on-success (fn []
                      (booking/make-payment message-queue booking-id)
@@ -86,7 +86,7 @@
                       {:booking-id booking-id}))]
     (validate-req booking-id ::specs/booking-id on-success)))
 
-(defn cancel-booking-handler [db-spec message-queue request]
+(defn cancel-booking-handler [message-queue request]
   (let [booking-id (get-in request [:route-params :booking-id])
         on-success (fn []
                      (booking/cancel-booking message-queue booking-id)

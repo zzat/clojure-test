@@ -7,8 +7,7 @@
             [swift-ticketing.db.event :as db-event]
             [swift-ticketing.model.ticket :as ticket]
             [swift-ticketing.client :as client]
-            [swift-ticketing.model.booking :as booking]
-            [swift-ticketing.db.booking :as db-booking]))
+            [swift-ticketing.model.booking :as booking]))
 
 (use-fixtures :each fixtures/clear-tables)
 
@@ -114,7 +113,7 @@
           create-tickets-called-with-correct-args (atom false)]
       (with-redefs
        [ticket/create-tickets
-        (fn [dbs uid eid req]
+        (fn [dbs uid _ req]
           (when (and
                  (= db-spec dbs)
                  (= test-user-id
@@ -152,7 +151,7 @@
         reserve-ticket-called-with-correct-args (atom false)]
     (testing "with valid request"
       (with-redefs [ticket/reserve-ticket
-                    (fn [dbs _ uid eid req]
+                    (fn [dbs _ uid _ req]
                       (when (and
                              (= db-spec dbs)
                              (= test-user-id
@@ -175,14 +174,13 @@
               (str "Request without '" key "' should return 400")))))))
 
 (deftest reserve-ticket-test
-  (let [event-id (random-uuid)]
-    (testing "Reserving ticket (General)"
+  (testing "Reserving ticket (General)"
       (reserve-ticket-test* #(factory/mk-reserve-general-ticket-request
                               (inc (rand-int 10))
                               (random-uuid)))
       (testing "Reserving ticket (Seated)"
         (reserve-ticket-test* #(factory/mk-reserve-seated-ticket-request
-                                [(random-uuid)]))))))
+                                [(random-uuid)])))))
 
 (deftest make-payment-test
   (testing "Payment handler"
