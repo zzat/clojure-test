@@ -20,7 +20,7 @@
   (let [{:keys [venue from to]} filters]
     (run-query!
      db-spec
-     (sql/format {:select [:event_id :event_name :event_description :event_date :venue] :from :event
+     (sql/format {:select [:*] :from :event
                   :where [:and
                           (if (nil? venue) [true] [:= :venue venue])
                           (if (nil? from) [true] [:>= :event_date [:cast from :date]])
