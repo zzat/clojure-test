@@ -2,7 +2,8 @@
   (:require
    [next.jdbc :as jdbc]
    [honey.sql :as sql]
-   [swift-ticketing.db.ticket :as db-ticket])
+   [swift-ticketing.db.ticket :as db-ticket]
+   [swift-ticketing.db.booking :as db-booking])
   (:import [java.time Instant Duration]))
 
 (defn mk-prefix [x]
@@ -36,6 +37,13 @@
    str
    (repeatedly 15 #(rand-nth "abcdefghijklmnopqrstuvwxyz"))))
 
+(defn random-booking-status []
+  (rand-nth [db-booking/INPROCESS
+             db-booking/PAYMENTPENDING
+             db-booking/CONFIRMED
+             db-booking/CANCELED
+             db-booking/REJECTED]))
+
 (defn get-events-params []
   {"venue" (random-str)
    "from" (random-date)
@@ -49,7 +57,7 @@
      "venue" (mk-event-venue random-id)}))
 
 (defn event-with-tickets [event-id]
-  (let [ticket-type-id (java.util.UUID/randomUUID)]
+  (let [ticket-type-id (random-uuid)]
     {:event_id (str event-id)
      :event_name (mk-event-name event-id)
      :event_description (mk-event-description event-id)
@@ -89,21 +97,17 @@
   {"ticket_ids" ticket-ids})
 
 (defn mk-ticket []
-  {:ticket_id (java.util.UUID/randomUUID)
+  {:ticket_id (random-uuid)
    :ticket_name (mk-ticket-name (rand-int 1000))
-   :ticket_type_id (java.util.UUID/randomUUID)
+   :ticket_type_id (random-uuid)
    :ticket_price (+ 10 (rand-int 10000))
    :reservation_expiration_time (.plus (Instant/now)
                                        (Duration/ofSeconds (+ 10 (rand-int 200))))
    :ticket_status db-ticket/AVAILABLE
-   :booking_id (java.util.UUID/randomUUID)})
-
-(defn mk-tickets []
-  (map (fn [_] (mk-ticket))
-       (range (inc (rand-int 20)))))
+   :booking_id (random-uuid)})
 
 (defn add-user-table-entry [db-spec]
-  (let [user-id (java.util.UUID/randomUUID)
+  (let [user-id (random-uuid)
         insert-user (sql/format {:insert-into :user_account
                                  :columns [:user_id :name]
                                  :values [[user-id

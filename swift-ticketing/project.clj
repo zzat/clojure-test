@@ -10,7 +10,6 @@
                  [compojure "1.7.0"]
                  [ring/ring-defaults "0.3.2"]
                  [com.github.seancorfield/next.jdbc "1.3.894"]
-                 [org.xerial/sqlite-jdbc "3.43.2.0"]
                  [com.github.seancorfield/honeysql "2.4.1066"]
                  [com.zaxxer/HikariCP "3.3.1"]
                  [org.postgresql/postgresql "42.6.0"]
@@ -22,7 +21,9 @@
                  [org.clojure/data.json "2.4.0"]
                  [com.taoensso/carmine "3.3.2"]
                  [ragtime "0.8.0"]
-                 [com.stuartsierra/component "1.1.0"]]
+                 [com.stuartsierra/component "1.1.0"]
+                 [com.taoensso/timbre "6.3.1"]
+                 [metosin/malli "0.13.0"]]
   :main ^:skip-aot swift-ticketing.core
   :target-path "target/%s"
   :plugins [[lein-ring "0.12.6"]]
