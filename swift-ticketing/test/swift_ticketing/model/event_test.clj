@@ -1,5 +1,5 @@
 (ns swift-ticketing.model.event-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest testing is]]
             [swift-ticketing.fixtures :as fixtures]
             [swift-ticketing.factory :as factory]
             [swift-ticketing.model.event :as event]
@@ -19,7 +19,7 @@
 (deftest get-event-test
   (testing "Fetching Event Details"
     (let [{:keys [db-spec]} fixtures/test-env
-          event-id (java.util.UUID/randomUUID)]
+          event-id (random-uuid)]
       (with-redefs [db-event/get-event-with-tickets
                     (fn [dbs eid]
                       (when (and (= db-spec dbs)

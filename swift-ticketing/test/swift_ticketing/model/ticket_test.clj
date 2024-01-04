@@ -1,5 +1,5 @@
 (ns swift-ticketing.model.ticket-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest testing is]]
             [swift-ticketing.fixtures :as fixtures]
             [swift-ticketing.factory :as factory]
             [clojure.walk :refer [keywordize-keys]]
@@ -30,7 +30,8 @@
                      (uuid? tid)
                      (= (:price ticket-req) price))
             (reset! insert-tickets-called-with-correct-args true)))]
-        (let [{:keys [ticket-type-id tickets]} (ticket/create-tickets db-spec test-user-id event-id ticket-req)]
+        (let [{:keys [ticket-type-id tickets]}
+              (ticket/create-tickets db-spec test-user-id event-id ticket-req)]
           (is (uuid? ticket-type-id))
           (is (not (nil? tickets)))
           (is @insert-ticket-type-called-with-correct-args)
@@ -70,7 +71,7 @@
 (deftest get-tickets-test
   (testing "Fetching unbooked tickets"
     (let [{:keys [db-spec]} fixtures/test-env
-          ticket-type-id (str (java.util.UUID/randomUUID))]
+          ticket-type-id (str (random-uuid))]
       (with-redefs [db-ticket/get-unbooked-tickets
                     (fn [dbs tid]
                       (when (and (= db-spec dbs)
@@ -81,7 +82,7 @@
 (deftest get-tickets-by-booking-id-test
   (testing "Fetching tickets by booking id"
     (let [{:keys [db-spec]} fixtures/test-env
-          booking-id (str (java.util.UUID/randomUUID))]
+          booking-id (str (random-uuid))]
       (with-redefs [db-ticket/get-tickets-by-booking-id
                     (fn [dbs bid]
                       (when (and (= db-spec dbs)
