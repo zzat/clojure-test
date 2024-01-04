@@ -15,10 +15,10 @@
 (defn insert-ticket-type [db-spec event-id ticket-type-id ticket-req]
   (run-query!
    db-spec
-   (let [ticket-type (:ticket_type ticket-req)
+   (let [ticket-type (:ticket-type ticket-req)
          description (:description ticket-req)
-         reservation-timelimit-seconds (:reservation_limit_in_seconds ticket-req)
-         seat-type (:seat_type ticket-req)]
+         reservation-timelimit-seconds (:reservation-limit-in-seconds ticket-req)
+         seat-type (:seat-type ticket-req)]
      (sql/format {:insert-into :ticket_type
                   :columns [:ticket_type_id
                             :ticket_type

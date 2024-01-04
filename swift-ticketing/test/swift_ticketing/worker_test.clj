@@ -21,7 +21,7 @@
 (deftest add-book-ticket-request-to-queue-test
   (testing "Adding booking request to queue"
     (let [message-queue (async/chan)
-          request {:booking-id (java.util.UUID/randomUUID)}]
+          request {:booking-id (random-uuid)}]
       (worker/add-book-ticket-request-to-queue message-queue request)
       (is (= (async/<!! message-queue)
              {:event worker/BOOK
@@ -30,7 +30,7 @@
 (deftest add-cancel-ticket-request-to-queue-test
   (testing "Adding cancel request to queue"
     (let [message-queue (async/chan)
-          request {:booking-id (java.util.UUID/randomUUID)}]
+          request {:booking-id (random-uuid)}]
       (worker/add-cancel-ticket-request-to-queue message-queue request)
       (is (= (async/<!! message-queue)
              {:event worker/CANCEL
@@ -43,8 +43,9 @@
           exit-ch (async/chan)]
 
       (testing "Cancel ticket request"
-        (let [booking-id (java.util.UUID/randomUUID)
-              selected-tickets (factory/mk-tickets)
+        (let [booking-id (random-uuid)
+              selected-tickets (map (constantly (factory/mk-ticket)) 
+                                    (range (inc (rand-int 20))))
               cancel-tickets-called-with-right-args (atom false)
               update-booking-called-with-right-args (atom false)]
           (with-redefs
@@ -68,8 +69,9 @@
             (is @update-booking-called-with-right-args))))
 
       (testing "Book ticket request"
-        (let [booking-id (java.util.UUID/randomUUID)
-              selected-tickets (factory/mk-tickets)
+        (let [booking-id (random-uuid)
+              selected-tickets (map (constantly (factory/mk-ticket)) 
+                                    (range (inc (rand-int 20))))
               confirm-tickets-called-with-right-args (atom false)
               update-booking-called-with-right-args (atom false)]
           (with-redefs
@@ -93,8 +95,9 @@
             (is @update-booking-called-with-right-args))))
 
       (testing "Reserve ticket request"
-        (let [booking-id (java.util.UUID/randomUUID)
-              selected-tickets (factory/mk-tickets)
+        (let [booking-id (random-uuid)
+              selected-tickets (map (constantly (factory/mk-ticket)) 
+                                    (range (inc (rand-int 20))))
               reserve-tickets-called-with-right-args (atom false)
               update-booking-called-with-right-args (atom false)]
 

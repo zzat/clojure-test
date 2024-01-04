@@ -110,7 +110,6 @@
 (defn get-tickets
   ([ticket-type-id]
    (let [response (get-request "/ticket" {"ticket_type_id" ticket-type-id})]
-     (println response)
      {:query-params ticket-type-id
       :status (:status response)
       :response (response-to-json response)})))

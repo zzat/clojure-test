@@ -4,12 +4,12 @@
             [swift-ticketing.db.ticket :as ticket])
   (:import [java.time Instant]))
 
-(defn insert-event [db-spec uid event_id event-req]
+(defn insert-event [db-spec uid event-id event-req]
   (run-query!
    db-spec
    (sql/format {:insert-into :event
                 :columns [:event_id :event_name :event_description :event_date :organizer_id :venue]
-                :values [[event_id
+                :values [[event-id
                           (:name event-req)
                           (:description event-req)
                           [:cast (:date event-req) :date]

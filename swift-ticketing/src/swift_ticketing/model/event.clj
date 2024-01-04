@@ -8,6 +8,6 @@
   (db-event/get-event-with-tickets db-spec event-id))
 
 (defn create-event [db-spec uid event-req]
-  (let [event-id (java.util.UUID/randomUUID)]
+  (let [event-id (random-uuid)]
     (db-event/insert-event db-spec uid event-id event-req)
     event-id))
