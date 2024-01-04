@@ -2,18 +2,19 @@
   (:require [clojure.test :refer [deftest testing is]]
             [swift-ticketing.fixtures :as fixtures]
             [swift-ticketing.factory :as factory]
-            [clojure.walk :refer [keywordize-keys]]
             [swift-ticketing.model.ticket :as ticket]
             [swift-ticketing.db.ticket :as db-ticket]
             [swift-ticketing.db.booking :as db-booking]
-            [swift-ticketing.worker :as worker]))
+            [swift-ticketing.worker :as worker]
+            [camel-snake-kebab.core :as csk]
+            [camel-snake-kebab.extras :as cske]))
 
 (deftest create-tickets-test
   (testing "Creating Tickets"
     (let [{:keys [db-spec test-user-id]} fixtures/test-env
-          event-id (str (java.util.UUID/randomUUID))
-          ticket-req (keywordize-keys
-                      (factory/seated-ticket-request))
+          event-id (str (random-uuid))
+          ticket-req (cske/transform-keys csk/->kebab-case-keyword
+                                          (factory/seated-ticket-request))
           insert-ticket-type-called-with-correct-args (atom false)
           insert-tickets-called-with-correct-args (atom false)]
       (with-redefs
@@ -41,10 +42,10 @@
   (testing "Reserving tickets"
     (let [{:keys [db-spec test-user-id]} fixtures/test-env
           message-queue :message-queue
-          event-id (str (java.util.UUID/randomUUID))
-          ticket-req (keywordize-keys
-                      (factory/mk-reserve-seated-ticket-request
-                       [(java.util.UUID/randomUUID)]))
+          event-id (str (random-uuid))
+          ticket-req (cske/transform-keys csk/->kebab-case-keyword
+                                          (factory/mk-reserve-seated-ticket-request
+                                           [(random-uuid)]))
           insert-booking-called-with-correct-args (atom false)
           add-reserve-ticket-called-with-correct-args (atom false)]
       (with-redefs
