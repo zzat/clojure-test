@@ -43,14 +43,14 @@
   (fn [request]
     (handler
      (update request
-             :body-params
+             :body
              (partial cske/transform-keys csk/->kebab-case-keyword)))))
 
 (defn swift-ticketing-app [db-spec message-queue]
   (-> (init-routes db-spec message-queue)
       (wrap-defaults (assoc-in site-defaults [:security :anti-forgery] false))
+      wrap-request-kebab
       (wrap-json-body {:keywords? true
                        :bigdecimals? true})
-      wrap-request-kebab
       wrap-response-kebab
       wrap-json-response))
