@@ -140,6 +140,7 @@
     (cond
       (= :continue
          (async/alt!
-           message-queue (partial process-ticket-request* worker-id db-spec redis-opts)
+           message-queue ([request] 
+                          (process-ticket-request* worker-id db-spec redis-opts request))
            exit-ch :exit)) (recur)
       :else nil)))
