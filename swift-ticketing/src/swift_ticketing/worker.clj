@@ -4,7 +4,8 @@
             [swift-ticketing.db.booking :as booking]
             [next.jdbc :as jdbc]
             [clojure.core :as c]
-            [swift-ticketing.redis :as redis])
+            [swift-ticketing.redis :as redis]
+            [taoensso.timbre :as log])
   (:import [java.time Instant Duration]))
 
 (def reserve-event "RESERVE")
@@ -14,12 +15,10 @@
 (defn add-ticket-request-to-queue [message-queue request]
   (async/go (async/>! message-queue request)))
 
-(defn add-reserve-ticket-request-to-queue [message-queue request]
-  (let [event-type reserve-event
-        booking-id (:booking-id request)
-        ticket-ids (:ticket-ids request)
-        ticket-type-id (:ticket-type-id request)
-        quantity (:quantity request)]
+(defn add-reserve-ticket-request-to-queue
+  [message-queue
+   {:keys [booking-id ticket-ids ticket-type-id quantity]}]
+  (let [event-type reserve-event]
     (add-ticket-request-to-queue
      message-queue
      {:event event-type
@@ -61,7 +60,6 @@
                          ticket-id-set
                          (conj ticket-id-set ticket-id)))
         locked-ticket-ids (reduce reduction-fn #{} selected-ticket-ids)]
-    (println locked-ticket-ids)
     {:locked-ticket-ids locked-ticket-ids
      :reservation-timelimit-seconds reservation-timelimit-seconds}))
 
@@ -75,14 +73,14 @@
     (nil? redis-opts) (constantly nil)
     :else (partial redis/release-lock redis-opts)))
 
-(defn- handle-reserve-event [db-spec redis-opts request]
-  (let [booking-id (get-in request [:data :booking-id])
-        ticket-ids (get-in request [:data :ticket-ids])
-        ticket-type-id (get-in request [:data :ticket-type-id])
-        request-quantity (get-in request [:data :quantity])
+(defn- handle-reserve-event
+  [db-spec
+   redis-opts
+   {{:keys [booking-id ticket-ids ticket-type-id quantity]} :data}]
+  (let [requested-quantity quantity
         nil-to-zero (fn [x] (if (nil? x) 0 x))
         ticket-quantity (if (nil? ticket-ids)
-                          (nil-to-zero request-quantity)
+                          (nil-to-zero requested-quantity)
                           (count ticket-ids))]
     (if (zero? ticket-quantity)
       (booking/update-booking-status db-spec booking-id booking/REJECTED)
@@ -121,23 +119,27 @@
       (ticket/cancel-tickets tx selected-ticket-ids)
       (booking/update-booking-status tx booking-id booking/CANCELED))))
 
-(defn process-ticket-requests [worker-id message-queue db-spec redis-opts]
-  (async/go
-    (while true
-      (try
-        (let [request (async/<! message-queue)
-              event-type (:event request)]
-          (println "Got Message:")
-          (println request)
-          (cond
-            (= event-type reserve-event) (handle-reserve-event db-spec redis-opts request)
-            (= event-type book-event) (handle-book-event db-spec request)
-            (= event-type cancel-event) (handle-cancel-event db-spec request)
-            :else (println "Worker: Unknown event")))
-        (catch Exception e
-          (println (str "Exception in Worker: " worker-id " :" e)))))))
+(defn- process-ticket-request* [worker-id db-spec redis-opts request]
+  (try
+    (let [event-type (:event request)]
+      (log/debug "Got Message:" request)
+      (cond
+        (= event-type reserve-event)
+        (handle-reserve-event db-spec redis-opts request)
+        (= event-type book-event)
+        (handle-book-event db-spec request)
+        (= event-type cancel-event)
+        (handle-cancel-event db-spec request)
+        :else (log/error "Worker: Unknown event"))
+      :continue)
+    (catch Exception e
+      (log/error "Exception in Worker: " worker-id " :" e))))
 
-;; redis-opts is not nil when locking-strategy chosen is redis
-; (defn workers [db-spec redis-opts total-workers]
-;   (dotimes [i total-workers]
-;     (.start (Thread. #(process-ticket-requests i db-spec redis-opts)))))
+(defn process-ticket-requests [worker-id message-queue db-spec redis-opts exit-ch]
+  (async/go-loop []
+    (cond
+      (= :continue
+         (async/alt!
+           message-queue (partial process-ticket-request* worker-id db-spec redis-opts)
+           exit-ch :exit)) (recur)
+      :else nil)))

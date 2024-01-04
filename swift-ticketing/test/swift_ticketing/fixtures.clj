@@ -10,7 +10,8 @@
 
 (def test-env
   {:test-user-id nil
-   :db-spec nil})
+   :db-spec nil
+   :server-spec nil})
 
 (def swift-ticketing-test-system
   (swift-ticketing-system (read-test-config)))
@@ -23,10 +24,9 @@
 
 (defn run-with-test-system [tests]
   ;; Init db connection pool, start workers
-  (println "start-test-system")
   (start-test-system)
-  (println "after start-test-system")
   (let [db (:database swift-ticketing-test-system)
+        http-server (:app swift-ticketing-test-system)
         db-config (:db-config db)
         conn (:connection db)]
     ;; setup tables
@@ -36,7 +36,8 @@
       (alter-var-root
        #'test-env #(assoc %
                           :test-user-id test-user-id
-                          :db-spec conn)))
+                          :db-spec conn
+                          :server-spec http-server)))
     ;; run tests
     (tests)
     ;; rollback db
@@ -48,6 +49,7 @@
   ;; Init db connection pool, start workers
   (start-test-system)
   (let [db (:database swift-ticketing-test-system)
+        http-server (:app swift-ticketing-test-system)
         db-config (:db-config db)
         conn (:connection db)]
     ;; setup tables
@@ -57,7 +59,8 @@
       (alter-var-root
        #'test-env #(assoc %
                           :test-user-id test-user-id
-                          :db-spec conn))))
+                          :db-spec conn
+                          :server-spec http-server))))
   test-plan)
 
 (defn teardown-test-system [test-plan]

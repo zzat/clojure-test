@@ -1,51 +1,76 @@
 (ns swift-ticketing.specs
-  (:require [clojure.spec.alpha :as s]))
+  (:require
+   [malli.core :as m]
+   [malli.registry :as mr]))
 
 (defn date? [date]
   (let [date-regex #"\d{4}-\d{2}-\d{2}"]
-    (boolean 
-      (and (string? date) (re-matches date-regex date)))))
+    (boolean
+     (and (string? date) (re-matches date-regex date)))))
 
-(defn uuid? [x]
+(defn string-uuid? [x]
   (try
     (java.util.UUID/fromString x)
-    (catch Exception e false)))
+    (catch Exception _ false)))
 
-(defn nilable [pred]
-  (fn [x] (or (nil? x) (pred x))))
+(def non-empty-string
+  (m/schema [:string {:min 1}]))
 
-(s/def ::venue (nilable string?))
-(s/def ::to (nilable date?))
-(s/def ::from (nilable date?))
+(mr/set-default-registry!
+ (mr/composite-registry
+  (m/default-schemas)
+  {:date (m/-simple-schema {:type :date
+                            :pred date?
+                            :type-properties {:error/message
+                                              "expected format yyyy-MM-dd"}})
+   :non-empty-string non-empty-string
+   :string-uuid (m/-simple-schema {:type :string-uuid
+                                   :pred string-uuid?
+                                   :type-properties {:error/message
+                                                     "should be a uuid"}})}))
 
-(s/def ::name string?)
-(s/def ::description string?)
-(s/def ::date date?)
+(def GetEventsParams
+  [:map
+   [:venue {:optional true} :non-empty-string]
+   [:from {:optional true} :date]
+   [:to {:optional true} :date]])
 
-(s/def ::event-id uuid?)
-(s/def ::booking-id uuid?)
-(s/def ::ticket-type-id uuid?)
+(def CreateEventParams
+  [:map
+   [:name :non-empty-string
+    :description :non-empty-string
+    :date :date
+    :venue :non-empty-string]])
 
-(s/def ::ticket_type string?)
-(s/def ::seat_type string?)
-(s/def ::ticket_type_id uuid?)
-(s/def ::quantity int?)
-(s/def ::price int?)
-(s/def ::reservation_limit_in_seconds int?)
-(s/def ::seats vector?)
-(s/def ::ticket_ids vector?)
+(def CreateTicketsParams
+  (let [seat-schema
+        [:map
+         [:name :non-empty-string]]]
+    [:multi {:dispatch :seat-type}
+     ["General"
+      [:map
+       [:ticket-type :non-empty-string]
+       [:seat-type :non-empty-string]
+       [:description :string]
+       [:quantity pos-int?]
+       [:price pos?]]]
+     ["Named"
+      [:map
+       [:ticket-type :non-empty-string]
+       [:seat-type :non-empty-string]
+       [:description :string]
+       [:seats seat-schema]
+       [:reservation-limit-in-seconds nat-int?]
+       [:price pos?]]]]))
 
-(s/def ::get-event-params
-  (s/keys :opt-un [::venue ::to ::from]))
+(def ReserveTicketsParams
+  [:or
+   [:map
+    [:ticket-ids string?]]
+   [:map
+    [:ticket-type-id :string-uuid]
+    [:quantity pos-int?]]])
 
-(s/def ::create-event-params
-  (s/keys :req-un [::name ::description ::date ::venue]))
-
-(s/def ::create-tickets-params
-  (s/keys :req-un [(or (and ::ticket_type ::seat_type ::description ::quantity ::price)
-                         (and ::ticket_type ::seat_type ::description ::seats ::reservation_limit_in_seconds ::price))]))
-
-(s/def ::reserve-tickets-params
-  (s/keys :req-un [(or (and ::quantity ::ticket_type_id) ::ticket_ids)]))
-
-; (s/valid? ::create-event-params {:name "a"})
+(def EventId :string-uuid)
+(def BookingId :string-uuid)
+(def TicketTypeId :string-uuid)

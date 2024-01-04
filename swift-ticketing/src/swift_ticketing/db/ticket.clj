@@ -1,6 +1,6 @@
 (ns swift-ticketing.db.ticket
   (:require [honey.sql :as sql]
-            [swift-ticketing.db.query :refer [run-query!]])
+            [swift-ticketing.db.query :refer [run-query! run-query-one!]])
   (:import [java.time Instant]))
 
 ;; ticket_status
@@ -15,10 +15,10 @@
 (defn insert-ticket-type [db-spec event-id ticket-type-id ticket-req]
   (run-query!
    db-spec
-   (let [ticket-type (:ticket_type ticket-req)
+   (let [ticket-type (:ticket-type ticket-req)
          description (:description ticket-req)
-         reservation-timelimit-seconds (:reservation_limit_in_seconds ticket-req)
-         seat-type (:seat_type ticket-req)]
+         reservation-timelimit-seconds (:reservation-limit-in-seconds ticket-req)
+         seat-type (:seat-type ticket-req)]
      (sql/format {:insert-into :ticket_type
                   :columns [:ticket_type_id
                             :ticket_type
@@ -32,6 +32,13 @@
                             [:cast event-id :uuid]
                             reservation-timelimit-seconds
                             [:cast seat-type :seat_type]]]}))))
+
+(defn get-ticket-type [db-spec ticket-type-id]
+  (run-query-one! 
+    db-spec
+    (sql/format {:select [:*] 
+                 :from :ticket_type
+                 :where [:= :ticket_type_id [:cast ticket-type-id :uuid]]})))
 
 (defn insert-tickets [db-spec ticket-type-id tickets price]
   (run-query!
@@ -99,7 +106,7 @@
    (sql/format {:update :ticket
                 :set {:booking_id [:cast booking-id :uuid]
                       :ticket_status [:cast RESERVED :ticket_status]
-                      :reservation_expiration_time reservation-expiration-time}
+                      :reservation_expiration_time [:cast (.toString reservation-expiration-time) :timestamptz]}
                 :where [:in :ticket_id ticket-ids]})))
 
 (defn reset-ticket-status [db-spec ticket-ids status]

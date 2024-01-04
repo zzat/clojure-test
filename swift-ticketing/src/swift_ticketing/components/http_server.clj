@@ -1,13 +1,14 @@
 (ns swift-ticketing.components.http-server
   (:require [com.stuartsierra.component :as component]
             [ring.adapter.jetty :refer [run-jetty]]
-            [swift-ticketing.app :as app]))
+            [swift-ticketing.app :as app]
+            [taoensso.timbre :as log]))
 
 (defrecord HTTPServer [port join? database worker]
   component/Lifecycle
 
   (start [component]
-    (println ";; Starting API Server")
+    (log/info "Starting API Server")
     (let [connection (:connection database)
           message-queue (:message-queue worker)
           server (run-jetty
@@ -17,7 +18,7 @@
       (assoc component :http-server server)))
 
   (stop [component]
-    (println ";; Stopping API Server")
+    (log/info "Stopping API Server")
     (.stop (:http-server component))
     (assoc component :http-server nil)))
 
