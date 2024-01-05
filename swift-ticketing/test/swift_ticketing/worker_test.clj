@@ -40,127 +40,137 @@
   (testing "Processing ticket requests"
     (let [{:keys [db-spec]} fixtures/test-env
           message-queue (async/chan)
-          exit-ch (async/chan)]
+          exit-ch (async/chan)
+          worker-id (rand-int 10)]
 
       (testing "Cancel ticket request"
         (let [booking-id (random-uuid)
-              selected-tickets (map (constantly (factory/mk-ticket)) 
+              selected-tickets (map (constantly (factory/mk-ticket))
                                     (range (inc (rand-int 20))))
-              cancel-tickets-called-with-right-args (atom false)
-              update-booking-called-with-right-args (atom false)]
+              cancel-tickets-args (atom {})
+              update-booking-args (atom {})]
           (with-redefs
            [db-ticket/lock-reserved-tickets (constantly selected-tickets)
             db-ticket/cancel-tickets
             (fn [_ ticket-ids]
-              (when (= ticket-ids
-                       (map :ticket-id selected-tickets))
-                (reset! cancel-tickets-called-with-right-args true)))
+              (reset! cancel-tickets-args {:ticket-ids ticket-ids}))
             db-booking/update-booking-status
             (fn [_ bid status]
-              (when (and
-                     (= db-booking/CANCELED status)
-                     (= booking-id bid))
-                (reset! update-booking-called-with-right-args true)))]
+              (reset! update-booking-args {:booking-status status
+                                           :booking-id bid}))]
 
-            (worker/add-cancel-ticket-request-to-queue message-queue {:booking-id booking-id})
-            (worker/process-ticket-requests 1 message-queue db-spec nil exit-ch)
+            (worker/add-cancel-ticket-request-to-queue
+             message-queue
+             {:booking-id booking-id})
+            (worker/process-ticket-requests
+             worker-id message-queue db-spec nil exit-ch)
             (Thread/sleep 2000)
-            (is @cancel-tickets-called-with-right-args)
-            (is @update-booking-called-with-right-args))))
+            (is (= {:ticket-ids
+                    (map :ticket-id selected-tickets)}
+                   @cancel-tickets-args))
+            (is (= {:booking-status db-booking/CANCELED
+                    :booking-id booking-id}
+                   @update-booking-args)))))
 
       (testing "Book ticket request"
         (let [booking-id (random-uuid)
-              selected-tickets (map (constantly (factory/mk-ticket)) 
+              selected-tickets (map (constantly (factory/mk-ticket))
                                     (range (inc (rand-int 20))))
-              confirm-tickets-called-with-right-args (atom false)
-              update-booking-called-with-right-args (atom false)]
+              confirm-tickets-args (atom {})
+              update-booking-args (atom {})]
           (with-redefs
            [db-ticket/lock-reserved-tickets (constantly selected-tickets)
             db-ticket/confirm-tickets
             (fn [_ ticket-ids]
-              (when (= ticket-ids
-                       (map :ticket-id selected-tickets))
-                (reset! confirm-tickets-called-with-right-args true)))
+              (reset! confirm-tickets-args {:ticket-ids ticket-ids}))
             db-booking/update-booking-status
             (fn [_ bid status]
-              (when (and
-                     (= db-booking/CONFIRMED status)
-                     (= booking-id bid))
-                (reset! update-booking-called-with-right-args true)))]
+              (reset! update-booking-args {:booking-status status
+                                           :booking-id bid}))]
 
-            (worker/add-book-ticket-request-to-queue message-queue {:booking-id booking-id})
-            (worker/process-ticket-requests 1 message-queue db-spec nil exit-ch)
+            (worker/add-book-ticket-request-to-queue
+             message-queue
+             {:booking-id booking-id})
+            (worker/process-ticket-requests
+             worker-id message-queue db-spec nil exit-ch)
             (Thread/sleep 2000)
-            (is @confirm-tickets-called-with-right-args)
-            (is @update-booking-called-with-right-args))))
+            (is (= {:ticket-ids
+                    (map :ticket-id selected-tickets)}
+                   @confirm-tickets-args))
+            (is (= {:booking-status db-booking/CONFIRMED
+                    :booking-id booking-id}
+                   @update-booking-args)))))
 
       (testing "Reserve ticket request"
         (let [booking-id (random-uuid)
-              selected-tickets (map (constantly (factory/mk-ticket)) 
+              selected-tickets (map (constantly (factory/mk-ticket))
                                     (range (inc (rand-int 20))))
-              reserve-tickets-called-with-right-args (atom false)
-              update-booking-called-with-right-args (atom false)]
+              reserve-tickets-args (atom {})
+              update-booking-args (atom {})]
 
           (testing "with zero ticket quantity"
             (with-redefs
              [db-booking/update-booking-status
               (fn [_ bid status]
-                (when (and
-                       (= db-booking/REJECTED status)
-                       (= booking-id bid))
-                  (reset! update-booking-called-with-right-args true)))]
+                (reset! update-booking-args {:booking-status status
+                                             :booking-id bid}))]
 
               (worker/add-reserve-ticket-request-to-queue
                message-queue
                (factory/worker-reserve-ticket-request booking-id []))
               (worker/process-ticket-requests 1 message-queue db-spec nil exit-ch)
               (Thread/sleep 2000)
-              (is @update-booking-called-with-right-args)))
+              (is (= {:booking-status db-booking/REJECTED
+                      :booking-id booking-id}
+                     @update-booking-args))))
 
-          (reset! update-booking-called-with-right-args false)
+          (reset! update-booking-args {})
 
           (testing "with valid ticket ids"
             (with-redefs
              [db-ticket/lock-unbooked-tickets (constantly selected-tickets)
               db-ticket/reserve-tickets
               (fn [_ ticket-ids bid _]
-                (when (and
-                       (= booking-id bid)
-                       (= ticket-ids
-                          (map :ticket-id selected-tickets)))
-                  (reset! reserve-tickets-called-with-right-args true)))
+                (reset! reserve-tickets-args {:ticket-ids ticket-ids
+                                              :booking-id bid}))
               db-booking/update-booking-status
               (fn [_ bid status]
-                (when (and
-                       (= db-booking/PAYMENTPENDING status)
-                       (= booking-id bid))
-                  (reset! update-booking-called-with-right-args true)))]
+                (reset! update-booking-args {:booking-status status
+                                             :booking-id bid}))]
 
               (worker/add-reserve-ticket-request-to-queue
                message-queue
-               (factory/worker-reserve-ticket-request booking-id selected-tickets))
-              (worker/process-ticket-requests 1 message-queue db-spec nil exit-ch)
+               (factory/worker-reserve-ticket-request
+                booking-id selected-tickets))
+              (worker/process-ticket-requests
+               worker-id message-queue db-spec nil exit-ch)
               (Thread/sleep 2000)
-              (is @reserve-tickets-called-with-right-args)
-              (is @update-booking-called-with-right-args)))
+              (is (= {:ticket-ids (map :ticket-id selected-tickets)
+                      :booking-id booking-id}
+                     @reserve-tickets-args))
+              (is (= {:booking-status db-booking/PAYMENTPENDING
+                      :booking-id booking-id}
+                     @update-booking-args))))
 
-          (reset! reserve-tickets-called-with-right-args false)
-          (reset! update-booking-called-with-right-args false)
+          (reset! reserve-tickets-args {})
+          (reset! update-booking-args {})
 
           (testing "when unable to lock tickets"
             (with-redefs
              [db-ticket/lock-unbooked-tickets (constantly [])
               db-booking/update-booking-status
               (fn [_ bid status]
-                (when (and
-                       (= db-booking/REJECTED status)
-                       (= booking-id bid))
-                  (reset! update-booking-called-with-right-args true)))]
+                (reset! update-booking-args {:booking-status status
+                                             :booking-id bid}))]
 
               (worker/add-reserve-ticket-request-to-queue
                message-queue
-               (factory/worker-reserve-ticket-request booking-id selected-tickets))
-              (worker/process-ticket-requests 1 message-queue db-spec nil exit-ch)
+               (factory/worker-reserve-ticket-request
+                booking-id selected-tickets))
+              (worker/process-ticket-requests
+               worker-id message-queue db-spec nil exit-ch)
               (Thread/sleep 2000)
-              (is (= false @reserve-tickets-called-with-right-args))
-              (is @update-booking-called-with-right-args))))))))
+              (is (= {} @reserve-tickets-args))
+              (is (= {:booking-status db-booking/REJECTED
+                      :booking-id booking-id}
+                     @update-booking-args)))))))))
