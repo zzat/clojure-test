@@ -97,19 +97,19 @@
   {"ticket_ids" ticket-ids})
 
 (defn mk-ticket []
-  {:ticket_id (random-uuid)
-   :ticket_name (mk-ticket-name (rand-int 1000))
-   :ticket_type_id (random-uuid)
-   :ticket_price (+ 10 (rand-int 10000))
-   :reservation_expiration_time (.plus (Instant/now)
+  {:ticket-id (random-uuid)
+   :ticket-name (mk-ticket-name (rand-int 1000))
+   :ticket-type-id (random-uuid)
+   :ticket-price (+ 10 (rand-int 10000))
+   :reservation-expiration-time (.plus (Instant/now)
                                        (Duration/ofSeconds (+ 10 (rand-int 200))))
-   :ticket_status db-ticket/AVAILABLE
-   :booking_id (random-uuid)})
+   :ticket-status db-ticket/AVAILABLE
+   :booking-id (random-uuid)})
 
 (defn worker-reserve-ticket-request
   ([] (worker-reserve-ticket-request 
         (random-uuid)
-        (map :ticket_id 
+        (map :ticket-id 
              (map (constantly (mk-ticket)) (range (rand-int 20))))))
   ([booking-id ticket-ids]
    {:booking-id booking-id

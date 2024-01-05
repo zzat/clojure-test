@@ -53,7 +53,7 @@
             db-ticket/cancel-tickets
             (fn [_ ticket-ids]
               (when (= ticket-ids
-                       (map :ticket_id selected-tickets))
+                       (map :ticket-id selected-tickets))
                 (reset! cancel-tickets-called-with-right-args true)))
             db-booking/update-booking-status
             (fn [_ bid status]
@@ -79,7 +79,7 @@
             db-ticket/confirm-tickets
             (fn [_ ticket-ids]
               (when (= ticket-ids
-                       (map :ticket_id selected-tickets))
+                       (map :ticket-id selected-tickets))
                 (reset! confirm-tickets-called-with-right-args true)))
             db-booking/update-booking-status
             (fn [_ bid status]
@@ -127,7 +127,7 @@
                 (when (and
                        (= booking-id bid)
                        (= ticket-ids
-                          (map :ticket_id selected-tickets)))
+                          (map :ticket-id selected-tickets)))
                   (reset! reserve-tickets-called-with-right-args true)))
               db-booking/update-booking-status
               (fn [_ bid status]

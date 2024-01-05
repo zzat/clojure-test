@@ -45,16 +45,16 @@
 
 (defn- select-unbooked-tickets-with-db-lock [tx ticket-ids ticket-type-id ticket-quantity]
   (let [selected-rows (db-ticket/lock-unbooked-tickets tx ticket-ids ticket-type-id ticket-quantity)
-        selected-ticket-ids (map #(:ticket_id %) selected-rows)
-        reservation-timelimit-seconds (:reservation_timelimit_seconds
+        selected-ticket-ids (map #(:ticket-id %) selected-rows)
+        reservation-timelimit-seconds (:reservation-timelimit-seconds
                                        (first selected-rows))]
     {:locked-ticket-ids selected-ticket-ids
      :reservation-timelimit-seconds reservation-timelimit-seconds}))
 
 (defn- select-unbooked-tickets-with-redis-lock [redis-opts tx ticket-ids ticket-type-id ticket-quantity]
   (let [selected-rows (db-ticket/select-unbooked-tickets tx false ticket-ids ticket-type-id ticket-quantity)
-        selected-ticket-ids (map #(:ticket/ticket_id %) selected-rows)
-        reservation-timelimit-seconds (:ticket_type/reservation_timelimit_seconds (first selected-rows))
+        selected-ticket-ids (map #(:ticket-id %) selected-rows)
+        reservation-timelimit-seconds (:reservation-timelimit-seconds (first selected-rows))
         reduction-fn (fn [ticket-id-set ticket-id]
                        (if (nil? (redis/acquire-lock redis-opts ticket-id reservation-timelimit-seconds))
                          ticket-id-set
@@ -107,7 +107,7 @@
   (jdbc/with-transaction [tx db-spec]
     (let [booking-id (get-in request [:data :booking-id])
           selected-ticket-ids (->> (db-ticket/lock-reserved-tickets tx booking-id)
-                                   (map :ticket_id))]
+                                   (map :ticket-id))]
       (db-ticket/confirm-tickets tx selected-ticket-ids)
       (db-booking/update-booking-status tx booking-id db-booking/CONFIRMED))))
 
@@ -115,7 +115,7 @@
   (jdbc/with-transaction [tx db-spec]
     (let [booking-id (get-in request [:data :booking-id])
           selected-ticket-ids (->> (db-ticket/lock-reserved-tickets tx booking-id)
-                                   (map :ticket_id))]
+                                   (map :ticket-id))]
       (db-ticket/cancel-tickets tx selected-ticket-ids)
       (db-booking/update-booking-status tx booking-id db-booking/CANCELED))))
 
