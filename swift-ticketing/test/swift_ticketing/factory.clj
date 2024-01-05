@@ -49,6 +49,16 @@
    "from" (random-date)
    "to" (random-date)})
 
+(defn events-result []
+  (let [mk-event
+        (fn [event-id]
+          {:event-id event-id
+           :event-name (mk-event-name event-id)
+           :event-description (mk-event-description event-id)
+           :event-date (random-date)
+           :venue (mk-event-venue event-id)})]
+    (map mk-event (repeatedly (inc (rand-int 10)) random-uuid))))
+
 (defn event-request []
   (let [random-id (rand-int 10000)]
     {"name" (mk-event-name random-id)
