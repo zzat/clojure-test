@@ -24,3 +24,4 @@ jmeter.log
 .shadow-cljs
 resources/config.edn
 resources/config.test.edn
+swift-ticketing.iml
