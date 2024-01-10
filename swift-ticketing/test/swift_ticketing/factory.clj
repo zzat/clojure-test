@@ -38,11 +38,11 @@
    (repeatedly 15 #(rand-nth "abcdefghijklmnopqrstuvwxyz"))))
 
 (defn random-booking-status []
-  (rand-nth [db-booking/INPROCESS
-             db-booking/PAYMENTPENDING
-             db-booking/CONFIRMED
-             db-booking/CANCELED
-             db-booking/REJECTED]))
+  (rand-nth [db-booking/in-process
+             db-booking/payment-pending
+             db-booking/confirmed
+             db-booking/canceled
+             db-booking/rejected]))
 
 (defn get-events-params []
   {"venue" (random-str)
@@ -103,14 +103,15 @@
    :ticket-price (+ 10 (rand-int 10000))
    :reservation-expiration-time (.plus (Instant/now)
                                        (Duration/ofSeconds (+ 10 (rand-int 200))))
-   :ticket-status db-ticket/AVAILABLE
+   :ticket-status db-ticket/available
    :booking-id (random-uuid)})
 
 (defn worker-reserve-ticket-request
-  ([] (worker-reserve-ticket-request 
-        (random-uuid)
-        (map :ticket-id 
-             (map (constantly (mk-ticket)) (range (rand-int 20))))))
+  ([]
+   (worker-reserve-ticket-request
+    (random-uuid)
+    (map :ticket-id
+         (repeatedly (inc (rand-int 20)) mk-ticket))))
   ([booking-id ticket-ids]
    {:booking-id booking-id
     :ticket-ids ticket-ids
