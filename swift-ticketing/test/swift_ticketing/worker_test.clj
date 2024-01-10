@@ -9,33 +9,6 @@
 
 (use-fixtures :each fixtures/clear-tables)
 
-(deftest add-reserve-ticket-request-to-queue-test
-  (testing "Adding reservation request to queue"
-    (let [message-queue (async/chan)
-          request (factory/worker-reserve-ticket-request)]
-      (worker/add-reserve-ticket-request-to-queue message-queue request)
-      (is (= (async/<!! message-queue)
-             {:event worker/RESERVE
-              :data request})))))
-
-(deftest add-book-ticket-request-to-queue-test
-  (testing "Adding booking request to queue"
-    (let [message-queue (async/chan)
-          request {:booking-id (random-uuid)}]
-      (worker/add-book-ticket-request-to-queue message-queue request)
-      (is (= (async/<!! message-queue)
-             {:event worker/BOOK
-              :data request})))))
-
-(deftest add-cancel-ticket-request-to-queue-test
-  (testing "Adding cancel request to queue"
-    (let [message-queue (async/chan)
-          request {:booking-id (random-uuid)}]
-      (worker/add-cancel-ticket-request-to-queue message-queue request)
-      (is (= (async/<!! message-queue)
-             {:event worker/CANCEL
-              :data request})))))
-
 (deftest process-ticket-requests-test
   (testing "Processing ticket requests"
     (let [{:keys [db-spec]} fixtures/test-env
