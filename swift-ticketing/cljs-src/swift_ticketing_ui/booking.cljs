@@ -1,9 +1,9 @@
 (ns swift-ticketing-ui.booking
   (:require
-   [ajax.core :as ajax]
    [reagent.core :as r]
    [accountant.core :as accountant]
    [swift-ticketing-ui.client :as client]
+   [swift-ticketing-ui.theme :as theme]
    [camel-snake-kebab.extras :as cske]
    [camel-snake-kebab.core :as csk]))
 
@@ -15,20 +15,21 @@
                     (do
                       (reset! loading false)
                       (reset! booking-status
-                              (:booking-status (cske/transform-keys csk/->kebab-case-keyword response))))
-                    (do (js/console.log "Response else: ", response)
-                        (reset! loading false))))]
+                              (:booking-status
+                               (cske/transform-keys csk/->kebab-case-keyword
+                                                    response))))
+                    (reset! loading false)))]
     (fn []
       @booking-status
       (when (or (= "InProcess" @booking-status)
-                  (= "PaymentPending" @booking-status)
-                  (nil? @booking-status))
-          (js/setTimeout
-           (fn []
-             (client/http-get
-              (str "/booking/" booking-id "/status")
-              handler))
-           500)))))
+                (= "PaymentPending" @booking-status)
+                (nil? @booking-status))
+        (js/setTimeout
+         (fn []
+           (client/http-get
+            (str "/booking/" booking-id "/status")
+            handler))
+         500)))))
 
         [:div {:class "flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8"}
          [:div {:class "mt-10 sm:mx-auto sm:w-full sm:max-w-[500px]"}
