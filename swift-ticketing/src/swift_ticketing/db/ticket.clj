@@ -4,13 +4,13 @@
   (:import [java.time Instant]))
 
 ;; ticket_status
-(defonce RESERVED "Reserved")
-(defonce AVAILABLE "Available")
-(defonce BOOKED "Booked")
+(defonce reserved "Reserved")
+(defonce available "Available")
+(defonce booked "Booked")
 
 ;; seat_type
-(defonce NAMED "Named")
-(defonce GENERAL "General")
+(defonce named "Named")
+(defonce general "General")
 
 (defn insert-ticket-type [db-spec event-id ticket-type-id ticket-req]
   (run-query!
@@ -46,7 +46,7 @@
    (let [make-ticket (fn [ticket] [[:cast (:ticket-id ticket) :uuid]
                                    (:name ticket)
                                    price
-                                   [:cast AVAILABLE :ticket_status]
+                                   [:cast available :ticket_status]
                                    [:cast ticket-type-id :uuid]])
          ticket-rows (map make-ticket tickets)]
      (sql/format {:insert-into :ticket
@@ -58,11 +58,11 @@
    db-spec
    (let [current-time [:cast (.toString (Instant/now)) :timestamptz]
          reservation-expired [:and
-                              [:= :ticket.ticket_status [:cast RESERVED :ticket_status]]
+                              [:= :ticket.ticket_status [:cast reserved :ticket_status]]
                               [:or
                                [:> current-time :ticket.reservation_expiration_time]
                                [:= :ticket.reservation-expiration-time nil]]]
-         tickets-available [:= :ticket.ticket_status [:cast AVAILABLE :ticket_status]]
+         tickets-available [:= :ticket.ticket_status [:cast available :ticket_status]]
          where-clause (if (or (nil? ticket-ids) (empty? ticket-ids))
                         [:and
                          [:= :ticket.ticket_type_id [:cast ticket-type-id :uuid]]
@@ -90,7 +90,7 @@
    (let [base-query {:select [:*]
                      :from :ticket
                      :where [:and
-                             [:= :ticket_status [:cast RESERVED :ticket_status]]
+                             [:= :ticket_status [:cast reserved :ticket_status]]
                              [:= :booking_id [:cast booking-id :uuid]]]}
          query (if should-lock?
                  (conj base-query [:for [:update :skip-locked]])
@@ -105,7 +105,7 @@
    db-spec
    (sql/format {:update :ticket
                 :set {:booking_id [:cast booking-id :uuid]
-                      :ticket_status [:cast RESERVED :ticket_status]
+                      :ticket_status [:cast reserved :ticket_status]
                       :reservation_expiration_time [:cast (.toString reservation-expiration-time) :timestamptz]}
                 :where [:in :ticket_id ticket-ids]})))
 
@@ -118,10 +118,10 @@
                 :where [:in :ticket_id ticket-ids]})))
 
 (defn confirm-tickets [db-spec ticket-ids]
-  (reset-ticket-status db-spec ticket-ids BOOKED))
+  (reset-ticket-status db-spec ticket-ids booked))
 
 (defn cancel-tickets [db-spec ticket-ids]
-  (reset-ticket-status db-spec ticket-ids AVAILABLE))
+  (reset-ticket-status db-spec ticket-ids available))
 
 (defn get-tickets-by-booking-id [db-spec booking-id]
   (run-query!
@@ -136,11 +136,11 @@
    db-spec
    (let [current-time [:cast (.toString (Instant/now)) :timestamptz]
          reservation-expired [:and
-                              [:= :ticket.ticket_status [:cast RESERVED :ticket_status]]
+                              [:= :ticket.ticket_status [:cast reserved :ticket_status]]
                               [:or
                                [:> current-time :ticket.reservation_expiration_time]
                                [:= :ticket.reservation-expiration-time nil]]]
-         tickets-available [:= :ticket.ticket_status [:cast AVAILABLE :ticket_status]]]
+         tickets-available [:= :ticket.ticket_status [:cast available :ticket_status]]]
      (sql/format {:select [:*]
                   :from :ticket
                   :where [:and

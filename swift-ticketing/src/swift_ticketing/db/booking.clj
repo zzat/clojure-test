@@ -2,11 +2,11 @@
   (:require [honey.sql :as sql]
             [swift-ticketing.db.query :refer [run-query! run-query-one!]]))
 
-(defonce INPROCESS "InProcess")
-(defonce CONFIRMED "Confirmed")
-(defonce PAYMENTPENDING "PaymentPending")
-(defonce REJECTED "Rejected")
-(defonce CANCELED "Canceled")
+(defonce in-process "InProcess")
+(defonce confirmed "Confirmed")
+(defonce payment-pending "PaymentPending")
+(defonce rejected "Rejected")
+(defonce canceled "Canceled")
 
 (defn insert-booking [db-spec uid booking-id booking-status]
   (run-query!

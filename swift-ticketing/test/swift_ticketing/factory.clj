@@ -38,11 +38,11 @@
    (repeatedly 15 #(rand-nth "abcdefghijklmnopqrstuvwxyz"))))
 
 (defn random-booking-status []
-  (rand-nth [db-booking/INPROCESS
-             db-booking/PAYMENTPENDING
-             db-booking/CONFIRMED
-             db-booking/CANCELED
-             db-booking/REJECTED]))
+  (rand-nth [db-booking/in-process
+             db-booking/payment-pending
+             db-booking/confirmed
+             db-booking/canceled
+             db-booking/rejected]))
 
 (defn get-events-params []
   {"venue" (random-str)
@@ -97,14 +97,26 @@
   {"ticket_ids" ticket-ids})
 
 (defn mk-ticket []
-  {:ticket_id (random-uuid)
-   :ticket_name (mk-ticket-name (rand-int 1000))
-   :ticket_type_id (random-uuid)
-   :ticket_price (+ 10 (rand-int 10000))
-   :reservation_expiration_time (.plus (Instant/now)
+  {:ticket-id (random-uuid)
+   :ticket-name (mk-ticket-name (rand-int 1000))
+   :ticket-type-id (random-uuid)
+   :ticket-price (+ 10 (rand-int 10000))
+   :reservation-expiration-time (.plus (Instant/now)
                                        (Duration/ofSeconds (+ 10 (rand-int 200))))
-   :ticket_status db-ticket/AVAILABLE
-   :booking_id (random-uuid)})
+   :ticket-status db-ticket/available
+   :booking-id (random-uuid)})
+
+(defn worker-reserve-ticket-request
+  ([]
+   (worker-reserve-ticket-request
+    (random-uuid)
+    (map :ticket-id
+         (repeatedly (inc (rand-int 20)) mk-ticket))))
+  ([booking-id ticket-ids]
+   {:booking-id booking-id
+    :ticket-ids ticket-ids
+    :ticket-type-id (random-uuid)
+    :quantity (rand-int 1000)}))
 
 (defn add-user-table-entry [db-spec]
   (let [user-id (random-uuid)

@@ -1,6 +1,5 @@
 (ns swift-ticketing.handlers
   (:require
-   [clojure.spec.alpha :as s]
    [malli.core :as m]
    [malli.error :as me]
    [swift-ticketing.model.event :as event]
@@ -68,7 +67,7 @@
                         {:ticket-type-id ticket-type-id
                          :tickets tickets})))]
     (and
-     (s/valid? specs/EventId event-id)
+     (m/validate specs/EventId event-id)
      (validate-req body specs/CreateTicketsParams on-success))))
 
 (defn reserve-ticket-handler [db-spec message-queue request]
@@ -80,7 +79,7 @@
                       {:booking-id
                        (ticket/reserve-ticket db-spec message-queue uid event-id body)}))]
     (and
-     (s/valid? specs/EventId event-id)
+     (m/validate specs/EventId event-id)
      (validate-req body specs/ReserveTicketsParams on-success))))
 
 (defn post-payment-handler [message-queue request]
