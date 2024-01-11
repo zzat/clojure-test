@@ -9,7 +9,7 @@
    event-id
    {:keys [seat-type seats price quantity]
     :as ticket-req}]
-  (let [tickets-map (if (= seat-type db-ticket/NAMED)
+  (let [tickets-map (if (= seat-type db-ticket/named)
                       seats
                       (map (fn [_] {:name ""}) (range quantity)))
         ticket-type-id (random-uuid)
@@ -25,8 +25,8 @@
         req-ticket-ids (:ticket-ids booking-req)
         ticket-ids (when-not (nil? req-ticket-ids)
                      (map #(java.util.UUID/fromString %) req-ticket-ids))]
-    (db-booking/insert-booking db-spec uid booking-id db-booking/INPROCESS)
-    (worker/add-reserve-ticket-request-to-queue
+    (db-booking/insert-booking db-spec uid booking-id db-booking/in-process)
+    (worker/request-ticket-reservation
      message-queue
      {:booking-id booking-id
       :ticket-type-id (:ticket-type-id booking-req)

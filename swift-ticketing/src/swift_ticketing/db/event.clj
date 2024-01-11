@@ -37,11 +37,11 @@
    db-spec
    (let [current-time [:cast (.toString (Instant/now)) :timestamptz]
          reservation-expired [:and
-                              [:= :ticket.ticket_status [:cast ticket/RESERVED :ticket_status]]
+                              [:= :ticket.ticket_status [:cast ticket/reserved :ticket_status]]
                               [:or
                                [:> current-time :ticket.reservation_expiration_time]
                                [:= :ticket.reservation-expiration-time nil]]]
-         tickets-available [:= :ticket.ticket_status [:cast ticket/AVAILABLE :ticket_status]]]
+         tickets-available [:= :ticket.ticket_status [:cast ticket/available :ticket_status]]]
      (sql/format {:select [:e.event_id
                            :event_name
                            :event_description
