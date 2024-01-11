@@ -37,10 +37,10 @@
 
 (def CreateEventParams
   [:map
-   [:name :non-empty-string
-    :description :non-empty-string
-    :date :date
-    :venue :non-empty-string]])
+   [:name :non-empty-string]
+    [:description :non-empty-string]
+    [:date :date]
+    [:venue :non-empty-string]])
 
 (def CreateTicketsParams
   (let [seat-schema
@@ -59,14 +59,14 @@
        [:ticket-type :non-empty-string]
        [:seat-type :non-empty-string]
        [:description :string]
-       [:seats seat-schema]
+       [:seats [:vector seat-schema]]
        [:reservation-limit-in-seconds nat-int?]
        [:price pos?]]]]))
 
 (def ReserveTicketsParams
   [:or
    [:map
-    [:ticket-ids string?]]
+    [:ticket-ids [:vector :string-uuid]]]
    [:map
     [:ticket-type-id :string-uuid]
     [:quantity pos-int?]]])

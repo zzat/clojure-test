@@ -90,7 +90,7 @@
           (let [{:keys [status response]} (client/create-event create-req)
                 event-id (get response "event_id")]
             (is (= status 201))
-            (is (= (name expected-event-id) event-id) "Should return event_id returned by event/create-event")
+            (is (= (str expected-event-id) event-id) "Should return event_id returned by event/create-event")
             (is (= {:db-spec db-spec
                     :user-id (str test-user-id)
                     :request (keywordize-keys create-req)}
