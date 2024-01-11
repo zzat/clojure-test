@@ -32,7 +32,7 @@
           booking-id (random-uuid)
           add-book-ticket-request-to-queue-args (atom {})]
       (with-redefs
-       [worker/add-book-ticket-request-to-queue
+       [worker/request-ticket-booking
         (fn [mq req]
           (reset! add-book-ticket-request-to-queue-args
                   {:message-queue mq
@@ -48,7 +48,7 @@
           booking-id (random-uuid)
           add-cancel-ticket-request-to-queue-args (atom {})]
       (with-redefs
-       [worker/add-cancel-ticket-request-to-queue
+       [worker/request-ticket-cancellation
         (fn [mq req]
           (reset! add-cancel-ticket-request-to-queue-args
                   {:message-queue mq
