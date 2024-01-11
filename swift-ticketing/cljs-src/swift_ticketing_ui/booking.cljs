@@ -3,23 +3,9 @@
    [ajax.core :as ajax]
    [reagent.core :as r]
    [accountant.core :as accountant]
-   [swift-ticketing-ui.config :refer [API_URL]]
+   [swift-ticketing-ui.client :as client]
    [camel-snake-kebab.extras :as cske]
    [camel-snake-kebab.core :as csk]))
-
-(defn get-url [url handler]
-  (ajax/ajax-request
-   {:uri url
-    :method :get
-    :handler handler
-    :format (ajax/json-request-format)
-    :response-format (ajax/json-response-format {:keywords? true})}))
-
-(defn get-booking-status [url handler]
-  (get-url url handler))
-
-(defn get-booking-tickets [url handler]
-  (get-url url handler))
 
 (defn booking-page [booking-id]
   (let [loading (r/atom true)
@@ -34,16 +20,15 @@
                         (reset! loading false))))]
     (fn []
       @booking-status
-      (do
-        (when (or (= "InProcess" @booking-status)
+      (when (or (= "InProcess" @booking-status)
                   (= "PaymentPending" @booking-status)
                   (nil? @booking-status))
           (js/setTimeout
            (fn []
-             (get-booking-status
-              (str API_URL "/booking/" booking-id "/status")
+             (client/http-get
+              (str "/booking/" booking-id "/status")
               handler))
-           3000))
+           500)))))
 
         [:div {:class "flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8"}
          [:div {:class "mt-10 sm:mx-auto sm:w-full sm:max-w-[500px]"}
@@ -82,14 +67,13 @@
                           (reset! tickets
                                   (cske/transform-keys csk/->kebab-case-keyword response))
                           (accountant/navigate! (str "/booking/" booking-id))))]
-          (get-booking-tickets (str API_URL "/booking/" booking-id "/ticket") handler)))
+          (client/http-get (str "/booking/" booking-id "/ticket") handler)))
       :reagent-render
       (fn []
         (let [handler (fn [[ok response]]
                         (if ok
-                          (do
-                            (accountant/navigate! (str "/booking/" booking-id)))
-                          (println "Payment Failed")))
+                          (accountant/navigate! (str "/booking/" booking-id))
+                          (js/alert "Payment Failed")))
               button-base-class (str "rounded-md border border-transparent "
                                      "px-4 py-2 text-base font-medium text-white shadow-sm "
                                      "hover:bg-indigo-700 focus:outline-none focus:ring-2 "

@@ -1,24 +1,10 @@
 (ns swift-ticketing-ui.ticket
   (:require
-   [ajax.core :as ajax]
    [reagent.core :as r]
-   [swift-ticketing-ui.config :refer [API_URL]]
+   [swift-ticketing-ui.client :as client]
    [accountant.core :as accountant]
    [camel-snake-kebab.extras :as cske]
    [camel-snake-kebab.core :as csk]))
-
-(defn post-ticket [url handler ticket-info]
-  (let [{:keys [name description date venue]} ticket-info]
-    (ajax/ajax-request
-     {:uri url
-      :method :post
-      :params {:name name
-               :description description
-               :date date
-               :venue venue}
-      :handler handler
-      :format (ajax/json-request-format)
-      :response-format (ajax/json-response-format {:keywords? true})})))
 
 (defn ticket-form [event-id]
   (let [ticket-state (r/atom {:name ""
@@ -27,8 +13,7 @@
                               :price 0})
         handler (fn [[ok response]]
                   (if ok
-                    (do
-                      (accountant/navigate! "/event"))
+                    (accountant/navigate! "/event")
                     (js/alert "Couldn't create tickets!")))]
     (fn []
       [:div
@@ -36,7 +21,12 @@
        [:form
         {:on-submit
          (fn [e]
-           (post-ticket (str API_URL "/event/" event-id "/ticket") handler @ticket-state)
+           (client/http-post (str "/event/" event-id "/ticket")
+                             handler
+                             {:name (:name @ticket-state)
+                              :description (:description @ticket-state)
+                              :date (:date @ticket-state)
+                              :venue (:venue @ticket-state)})
            (.preventDefault e))}
         [:label {:for "ticket-name"} "Ticket Name"]
         [:input
@@ -68,26 +58,16 @@
 
         [:button {:type "submit"} "Create Tickets"]]])))
 
-(defn post-booking [url handler ticket-ids]
-  (ajax/ajax-request
-   {:uri url
-    :method :post
-    :params {:ticket_ids ticket-ids}
-    :handler handler
-    :format (ajax/json-request-format)
-    :response-format (ajax/json-response-format {:keywords? true})}))
-
 (defn seats-layout [event-id seats]
   (let [handler (fn [[ok response]]
                   (if ok
-                    (do
-                      (accountant/navigate! "/event"))
+                    (accountant/navigate! "/event")
                     (js/alert "Couldn't create tickets!")))
         booking-handler (fn [[ok response]]
                           (if ok
                             (do
                               (accountant/navigate! (str "/booking/payment/" (:booking-id (cske/transform-keys csk/->kebab-case-keyword response)))))
-                            (println "Booking Failed")))
+                            (js/alert "Booking Failed")))
         button-class (str "rounded-md border border-transparent bg-indigo-600 "
                           "px-4 py-2 text-base font-medium text-white shadow-sm "
                           "hover:bg-indigo-700 focus:outline-none focus:ring-2 "
@@ -111,19 +91,10 @@
        [:div {:class "fixed bottom-0 left-0 w-full p-4 flex flex-row-reverse"}
         [:button {:class button-class
                   :disabled (empty? @selected-seats-set)
-                  :on-click #(post-booking
-                              (str API_URL "/event/" event-id "/booking")
+                  :on-click #(client/http-post
+                              (str "/event/" event-id "/booking")
                               booking-handler
-                              @selected-seats-set)} "Buy Tickets"]]])))
-
-(defn get-tickets [url ticket-type-id handler]
-  (ajax/ajax-request
-   {:uri url
-    :method :get
-    :params {:ticket_type_id ticket-type-id}
-    :handler handler
-    :format (ajax/json-request-format)
-    :response-format (ajax/json-response-format {:keywords? true})}))
+                              {:ticket_ids @selected-seats-set})} "Buy Tickets"]]])))
 
 (defn seats-page [event-id ticket-type-id]
   (let [loading (r/atom true)
@@ -140,7 +111,7 @@
                             ; (accountant/navigate! "/event")
                             )
                           (reset! loading false)))]
-          (get-tickets (str API_URL "/ticket") ticket-type-id handler)))
+          (client/http-get "/ticket" handler {:ticket_type_id ticket-type-id})))
       :reagent-render (fn []
                         (if @loading
                           [:div "Loading..."]

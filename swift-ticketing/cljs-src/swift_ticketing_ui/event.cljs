@@ -1,25 +1,11 @@
 (ns swift-ticketing-ui.event
   (:require
-   [ajax.core :as ajax]
    [reagent.core :as r]
-   [swift-ticketing-ui.config :refer [API_URL]]
+   [swift-ticketing-ui.client :as client]
    [clojure.string :as str]
    [accountant.core :as accountant]
    [camel-snake-kebab.extras :as cske]
    [camel-snake-kebab.core :as csk]))
-
-(defn post-event [url handler event-info]
-  (let [{:keys [name description date venue]} event-info]
-    (ajax/ajax-request
-     {:uri url
-      :method :post
-      :params {:name name
-               :description description
-               :date date
-               :venue venue}
-      :handler handler
-      :format (ajax/json-request-format)
-      :response-format (ajax/json-response-format {:keywords? true})})))
 
 (defn event-form []
   (let [event-state (r/atom {:name ""
@@ -32,8 +18,7 @@
                           "focus:ring-indigo-500 focus:ring-offset-2")
         handler (fn [[ok response]]
                   (if ok
-                    (do
-                      (accountant/navigate! "/event"))
+                    (accountant/navigate! "/event")
                     (js/alert "Couldn't create the Event")))
         row (fn [label input-id component]
               [:div {:class "sm:grid sm:grid-cols-3 sm:items-start sm:gap-4 sm:py-6"}
@@ -52,7 +37,10 @@
         {:class "space-y-12 sm:space-y-16"
          :on-submit
          (fn [e]
-           (post-event (str API_URL "/event") handler @event-state)
+           (client/http-post "/event" handler {:name (:name @event-state)
+                                               :description (:description @event-state)
+                                               :date (:date @event-state)
+                                               :venue (:venue @event-state)})
            (.preventDefault e))}
 
         [:div {:class "mt-10 space-y-8 border-b border-gray-900/10 pb-12 sm:space-y-0 sm:divide-y sm:divide-gray-900/10 sm:border-t sm:pb-0"}
@@ -94,14 +82,6 @@
          [:div {:class "py-6 flex items-center justify-end gap-x-6"}
           [:button {:type "submit" :class button-class} "Submit"]]]]])))
 
-(defn get-events [url handler]
-  (ajax/ajax-request
-   {:uri url
-    :method :get
-    :handler handler
-    :format (ajax/json-request-format)
-    :response-format (ajax/json-response-format {:keywords? true})}))
-
 (defn event-card [event]
   [:a {:href "#" :class "group" :on-click (fn [] (accountant/navigate! (str "/event/" (:event-id event))))}
    [:div {:class "aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg sm:aspect-h-3 sm:aspect-w-2"}
@@ -140,37 +120,18 @@
                                     (cske/transform-keys csk/->kebab-case-keyword response)))
                           (do (js/console.log "Response else: ", response)
                               (reset! loading false))))]
-          (get-events (str API_URL "/event") handler)))
+          (client/http-get "/event" handler)))
       :reagent-render (fn []
                         (if @loading
                           [:div "Loading..."]
                           [events-list @events]))})))
 
-(defn get-event [url handler]
-  (ajax/ajax-request
-   {:uri url
-    :method :get
-    :handler handler
-    :format (ajax/json-request-format)
-    :response-format (ajax/json-response-format {:keywords? true})}))
-
-(defn post-booking [url handler quantity ticket-type-id]
-  (ajax/ajax-request
-   {:uri url
-    :method :post
-    :params {:quantity quantity
-             :ticket_type_id ticket-type-id}
-    :handler handler
-    :format (ajax/json-request-format)
-    :response-format (ajax/json-response-format {:keywords? true})}))
-
 (defn ticket-card [ticket booking-id]
   (let [selected-quantity (r/atom (min (:ticket-count ticket) 1))
         booking-handler (fn [[ok response]]
                           (if ok
-                            (do
-                              (accountant/navigate! (str "/booking/payment/" (:booking-id (cske/transform-keys csk/->kebab-case-keyword response)))))
-                            (println "Booking Failed")))
+                            (accountant/navigate! (str "/booking/payment/" (:booking-id (cske/transform-keys csk/->kebab-case-keyword response))))
+                            (js/alert "Booking Failed")))
         generalTicket? (= "General" (:seat-type ticket))
         button-class (str "rounded-md border border-transparent bg-indigo-600 "
                           "px-4 py-2 text-base font-medium text-white shadow-sm "
@@ -180,12 +141,15 @@
                                      "py-1.5 text-left text-base font-medium leading-5 "
                                      "text-gray-700 shadow-sm focus:border-indigo-500 "
                                      "focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm")
-        general-ticket-booking-button [:button {:class button-class
-                                                :on-click #(post-booking
-                                                            (str API_URL "/event/" (:event-id ticket) "/booking")
-                                                            booking-handler
-                                                            @selected-quantity
-                                                            (:ticket-type-id ticket))}
+        general-ticket-booking-button [:button
+                                       {:class button-class
+                                        :on-click #(client/http-post
+                                                    (str "/event/" 
+                                                         (:event-id ticket) 
+                                                         "/booking")
+                                                    booking-handler
+                                                    {:quantity @selected-quantity
+                                                     :ticket_type_id (:ticket-type-id ticket)})}
                                        "Buy Tickets"]
         select-seats-button [:button {:class button-class
                                       :on-click (fn [] (accountant/navigate! (str "/event/" (:event-id ticket) "/ticket/" (:ticket-type-id ticket))))}
@@ -232,7 +196,7 @@
         event (r/atom nil)
         booking-id (r/atom nil)]
     (r/create-class
-     {:display-name "event-pagew"
+     {:display-name "event-page"
       :component-did-mount
       (fn []
         (let [handler (fn [[ok response]]
@@ -242,7 +206,7 @@
                             (reset! event
                                     (cske/transform-keys csk/->kebab-case-keyword response)))
                           (reset! loading false)))]
-          (get-event (str API_URL "/event/" event-id) handler)))
+          (client/http-get (str "/event/" event-id) handler)))
       :reagent-render (fn []
                         (if @loading
                           [:div "Loading..."]
