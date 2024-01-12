@@ -44,9 +44,11 @@
       :status (:status response)
       :response (response-to-json response)})))
 
-(defn reserve-general-ticket
-  [request]
-  (let [response (post-request "/event" request)]
+(defn reserve-ticket
+  [event-id request]
+  (let [response (post-request
+                  (str "/event/" event-id "/booking")
+                  request)]
     {:request request
      :status (:status response)
      :response (response-to-json response)}))
