@@ -113,9 +113,8 @@
   ([db-spec ticket-ids status]
    (reset-ticket-status db-spec ticket-ids status nil))
   ([db-spec ticket-ids status reservation-expiration-time]
-   (let [expiration-time (if (nil? reservation-expiration-time)
-                           nil
-                           [:cast (.toString reservation-expiration-time) :timestamptz])]
+   (let [expiration-time (and reservation-expiration-time 
+                              [:cast (.toString reservation-expiration-time) :timestamptz])]
      (run-query!
       db-spec
       (sql/format {:update :ticket
