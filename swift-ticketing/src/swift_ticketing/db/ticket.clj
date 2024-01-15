@@ -101,13 +101,17 @@
   (select-reserved-tickets db-spec true booking-id))
 
 (defn reserve-tickets [db-spec ticket-ids booking-id reservation-expiration-time]
-  (run-query!
-   db-spec
-   (sql/format {:update :ticket
-                :set {:booking_id [:cast booking-id :uuid]
-                      :ticket_status [:cast reserved :ticket_status]
-                      :reservation_expiration_time [:cast (.toString reservation-expiration-time) :timestamptz]}
-                :where [:in :ticket_id ticket-ids]})))
+  (let [expiration-time
+        (if (nil? reservation-expiration-time)
+          nil
+          [:cast (.toString reservation-expiration-time) :timestamptz])]
+    (run-query!
+     db-spec
+     (sql/format {:update :ticket
+                  :set {:booking_id [:cast booking-id :uuid]
+                        :ticket_status [:cast reserved :ticket_status]
+                        :reservation_expiration_time expiration-time}
+                  :where [:in :ticket_id ticket-ids]}))))
 
 (defn reset-ticket-status
   ([db-spec ticket-ids status]
