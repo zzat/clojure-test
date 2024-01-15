@@ -34,11 +34,11 @@
                             [:cast seat-type :seat_type]]]}))))
 
 (defn get-ticket-type [db-spec ticket-type-id]
-  (run-query-one! 
-    db-spec
-    (sql/format {:select [:*] 
-                 :from :ticket_type
-                 :where [:= :ticket_type_id [:cast ticket-type-id :uuid]]})))
+  (run-query-one!
+   db-spec
+   (sql/format {:select [:*]
+                :from :ticket_type
+                :where [:= :ticket_type_id [:cast ticket-type-id :uuid]]})))
 
 (defn insert-tickets [db-spec ticket-type-id tickets price]
   (run-query!
@@ -109,13 +109,18 @@
                       :reservation_expiration_time [:cast (.toString reservation-expiration-time) :timestamptz]}
                 :where [:in :ticket_id ticket-ids]})))
 
-(defn reset-ticket-status [db-spec ticket-ids status]
-  (run-query!
-   db-spec
-   (sql/format {:update :ticket
-                :set {:ticket_status [:cast status :ticket_status]
-                      :reservation_expiration_time nil}
-                :where [:in :ticket_id ticket-ids]})))
+(defn reset-ticket-status
+  ([db-spec ticket-ids status]
+   (reset-ticket-status db-spec ticket-ids status nil))
+  ([db-spec ticket-ids status reservation-expiration-time]
+   (let [expiration-time (and reservation-expiration-time 
+                              [:cast (.toString reservation-expiration-time) :timestamptz])]
+     (run-query!
+      db-spec
+      (sql/format {:update :ticket
+                   :set {:ticket_status [:cast status :ticket_status]
+                         :reservation_expiration_time expiration-time}
+                   :where [:in :ticket_id ticket-ids]})))))
 
 (defn confirm-tickets [db-spec ticket-ids]
   (reset-ticket-status db-spec ticket-ids booked))

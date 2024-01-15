@@ -56,7 +56,7 @@
           (reset! insert-booking-args {:db-spec dbs
                                        :user-id uid
                                        :booking-status status}))
-        worker/add-reserve-ticket-request-to-queue
+        worker/request-ticket-reservation
         (fn [mq req]
           (reset! add-reserve-ticket-args
                   {:message-queue mq
@@ -67,7 +67,7 @@
               db-spec message-queue test-user-id event-id ticket-req)))
         (is (= {:db-spec db-spec
                 :user-id test-user-id
-                :booking-status db-booking/INPROCESS}
+                :booking-status db-booking/in-process}
                @insert-booking-args))
         (is (= {:message-queue message-queue
                 :ticket-type-id (:ticket-type-id ticket-req)

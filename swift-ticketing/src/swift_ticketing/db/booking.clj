@@ -24,7 +24,7 @@
                 :where [[:= :booking_id [:cast booking-id :uuid]]]})))
 
 (defn get-booking-status [db-spec booking-id]
-  (:booking_status (get-booking db-spec booking-id)))
+  (:booking-status (get-booking db-spec booking-id)))
 
 (defn update-booking-status [db-spec booking-id booking-status]
   (run-query!
