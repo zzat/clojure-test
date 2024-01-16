@@ -136,7 +136,8 @@
         :else (log/error "Worker: Unknown event"))
       :continue)
     (catch Exception e
-      (log/error "Exception in Worker: " worker-id " :" e))))
+      (log/error "Exception in Worker: " worker-id " :" e)
+      :continue)))
 
 (defn process-ticket-requests [worker-id message-queue db-spec redis-opts exit-ch]
   (async/go-loop []
