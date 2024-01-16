@@ -47,31 +47,50 @@
 
       (testing "Book ticket request"
         (let [booking-id (random-uuid)
-              selected-tickets (map (constantly (factory/mk-ticket))
+              selected-tickets (map (fn [_] (factory/mk-ticket))
                                     (range (inc (rand-int 20))))
-              confirm-tickets-args (promise)
-              update-booking-args (promise)]
+              confirm-tickets-args (atom (promise))
+              update-booking-args (atom (promise))]
           (with-redefs
-           [db-ticket/lock-reserved-tickets (constantly selected-tickets)
-            db-ticket/confirm-tickets
+           [db-ticket/confirm-tickets
             (fn [_ ticket-ids]
-              (deliver confirm-tickets-args {:ticket-ids ticket-ids}))
+              (deliver @confirm-tickets-args {:ticket-ids ticket-ids}))
             db-booking/update-booking-status
             (fn [_ bid status]
-              (deliver update-booking-args {:booking-status status
-                                           :booking-id bid}))]
+              (deliver @update-booking-args {:booking-status status
+                                             :booking-id bid}))]
 
-            (worker/request-ticket-booking
-             message-queue
-             {:booking-id booking-id})
-            (worker/process-ticket-requests
-             worker-id message-queue db-spec nil exit-ch)
-            (is (= {:ticket-ids
-                    (map :ticket-id selected-tickets)}
-                   (deref confirm-tickets-args 2000 :timed-out)))
-            (is (= {:booking-status db-booking/confirmed
-                    :booking-id booking-id}
-                   (deref update-booking-args 2000 :timed-out))))))
+            (testing "when booking has valid tickets"
+              (with-redefs [db-ticket/lock-reserved-tickets (constantly selected-tickets)]
+                (worker/request-ticket-booking
+                 message-queue
+                 {:booking-id booking-id})
+                (worker/process-ticket-requests
+                 worker-id message-queue db-spec nil exit-ch)
+                (is (= {:ticket-ids
+                        (map :ticket-id selected-tickets)}
+                       (deref @confirm-tickets-args 2000 :timed-out)))
+                (is (= {:booking-status db-booking/confirmed
+                        :booking-id booking-id}
+                       (deref @update-booking-args 2000 :timed-out)))
+                (async/put! exit-ch :exit)))
+
+            (reset! confirm-tickets-args (promise))
+            (reset! update-booking-args (promise))
+
+            (testing "when booking has no valid reserved tickets associated"
+              (with-redefs [db-ticket/lock-reserved-tickets (constantly [])]
+                (worker/request-ticket-booking
+                 message-queue
+                 {:booking-id booking-id})
+                (worker/process-ticket-requests
+                 worker-id message-queue db-spec nil exit-ch)
+                (is (= :timed-out
+                       (deref @confirm-tickets-args 2000 :timed-out)))
+                (is (= {:booking-status db-booking/rejected
+                        :booking-id booking-id}
+                       (deref @update-booking-args 2000 :timed-out)))
+                (async/put! exit-ch :exit))))))
 
       (testing "Reserve ticket request"
         (let [booking-id (random-uuid)
