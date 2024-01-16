@@ -30,7 +30,7 @@
             db-booking/update-booking-status
             (fn [_ bid status]
               (deliver update-booking-args {:booking-status status
-                                           :booking-id bid}))]
+                                            :booking-id bid}))]
 
             (worker/request-ticket-cancellation
              message-queue
@@ -42,7 +42,8 @@
                    (deref cancel-tickets-args 2000 :timed-out)))
             (is (= {:booking-status db-booking/canceled
                     :booking-id booking-id}
-                   (deref update-booking-args 2000 :timed-out))))))
+                   (deref update-booking-args 2000 :timed-out)))
+            (async/put! exit-ch :exit))))
 
       (testing "Book ticket request"
         (let [booking-id (random-uuid)
@@ -84,7 +85,7 @@
              [db-booking/update-booking-status
               (fn [_ bid status]
                 (deliver @update-booking-args {:booking-status status
-                                             :booking-id bid}))]
+                                               :booking-id bid}))]
 
               (worker/request-ticket-reservation
                message-queue
@@ -92,7 +93,8 @@
               (worker/process-ticket-requests 1 message-queue db-spec nil exit-ch)
               (is (= {:booking-status db-booking/rejected
                       :booking-id booking-id}
-                     (deref @update-booking-args 2000 :timed-out)))))
+                     (deref @update-booking-args 2000 :timed-out)))
+              (async/put! exit-ch :exit)))
 
           (reset! update-booking-args (promise))
 
@@ -102,11 +104,11 @@
               db-ticket/reserve-tickets
               (fn [_ ticket-ids bid _]
                 (deliver @reserve-tickets-args {:ticket-ids ticket-ids
-                                              :booking-id bid}))
+                                                :booking-id bid}))
               db-booking/update-booking-status
               (fn [_ bid status]
                 (deliver @update-booking-args {:booking-status status
-                                             :booking-id bid}))]
+                                               :booking-id bid}))]
 
               (worker/request-ticket-reservation
                message-queue
@@ -119,7 +121,9 @@
                      (deref @reserve-tickets-args 2000 :timed-out)))
               (is (= {:booking-status db-booking/payment-pending
                       :booking-id booking-id}
-                     (deref @update-booking-args 2000 :timed-out)))))
+                     (deref @update-booking-args 2000 :timed-out)))
+
+              (async/put! exit-ch :exit)))
 
           (reset! reserve-tickets-args (promise))
           (reset! update-booking-args (promise))
@@ -130,7 +134,7 @@
               db-booking/update-booking-status
               (fn [_ bid status]
                 (deliver @update-booking-args {:booking-status status
-                                             :booking-id bid}))]
+                                               :booking-id bid}))]
 
               (worker/request-ticket-reservation
                message-queue
@@ -141,4 +145,5 @@
               (is (= :timed-out (deref @reserve-tickets-args 2000 :timed-out)))
               (is (= {:booking-status db-booking/rejected
                       :booking-id booking-id}
-                     (deref @update-booking-args 2000 :timed-out))))))))))
+                     (deref @update-booking-args 2000 :timed-out)))
+              (async/put! exit-ch :exit))))))))
