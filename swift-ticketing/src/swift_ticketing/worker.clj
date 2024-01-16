@@ -108,8 +108,11 @@
     (let [booking-id (get-in request [:data :booking-id])
           selected-ticket-ids (->> (db-ticket/lock-reserved-tickets tx booking-id)
                                    (map :ticket-id))]
-      (db-ticket/confirm-tickets tx selected-ticket-ids)
-      (db-booking/update-booking-status tx booking-id db-booking/confirmed))))
+      (if (empty? selected-ticket-ids)
+        (db-booking/update-booking-status tx booking-id db-booking/rejected)
+        (do
+          (db-ticket/confirm-tickets tx selected-ticket-ids)
+          (db-booking/update-booking-status tx booking-id db-booking/confirmed))))))
 
 (defn- handle-cancel-event [db-spec request]
   (jdbc/with-transaction [tx db-spec]
