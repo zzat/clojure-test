@@ -139,6 +139,7 @@
       (log/error "Exception in Worker: " worker-id " :" e)
       :continue)))
 
+;; Worker
 (defn process-ticket-requests [worker-id message-queue db-spec redis-opts exit-ch]
   (async/go-loop []
     (cond
