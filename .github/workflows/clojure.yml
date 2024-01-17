@@ -4,18 +4,48 @@ on:
   push:
     paths:
       - swift-ticketing/**
-    branches: [ "main" ]
+    branches: [ "ci" ]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: swift_ticketing
+          POSTGRES_USER: swift_user
+          POSTGRES_PASSWORD: swift_password
+        ports:
+          - 5432:5432
 
     steps:
     - uses: actions/checkout@v3
     - name: Install dependencies
       run: lein deps
       working-directory: swift-ticketing
+    - name: Create test config file
+      working-directory: swift-ticketing
+      env:
+        POSTGRES_DB: swift_ticketing
+        POSTGRES_USER: swift_user
+        POSTGRES_PASSWORD: swift_password
+      run: |
+        touch resources/config.test.edn
+        echo \
+          "{:server \
+           {:port 9090 \
+            :join? false} \
+           :database \
+            {:dbtype \"postgres\" \
+             :host \"postgres\" \
+             :port 5432 \
+             :dbname \"$POSTGRES_DB\" \
+             :username \"$POSTGRES_USER\" \
+             :user \"$POSTGRES_USER\" \
+             :password \"$POSTGRES_PASSWORD\" \
+             :schema \"swift_ticketing\"}}"
     - name: Run tests
-      run: lein test
+      run: lein kaocha
       working-directory: swift-ticketing
